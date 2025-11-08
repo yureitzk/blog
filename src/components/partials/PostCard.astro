@@ -1,0 +1,52 @@
+---
+import FormattedDate from '@components/partials/FormattedDate.astro';
+import ReadingTime from '@components/partials/ReadingTime.astro';
+import PostTags from '@components/partials/PostTags.astro';
+import Author from '@components/partials/Author.astro';
+
+interface Props {
+	title: string;
+	tags: string[];
+	publishedDate: Date;
+	lastModifiedDate?: Date;
+	slug: string;
+	body: string;
+}
+
+const { title, tags, publishedDate, lastModifiedDate, slug, body } =
+	Astro.props;
+
+const postUrl = '/blog/' + slug;
+---
+
+<article
+	class='h-entry flex flex-col rounded-xl transition-transform transition-colors transition-shadow duration-550 ease-in-out hocus:z-30 hocus:shadow-lg md:shadow-xl md:hocus:shadow-2xl md:hocus:-translate-y-0.5 p-3 dark:bg-darkslategray bg-white'
+>
+	<div class='flex gap-x-3 mb-1'>
+		<a href={postUrl} class='group swap'>
+			{
+				lastModifiedDate && (
+					<FormattedDate
+						date={lastModifiedDate}
+						class='dt-updated opacity-0 group-hover:opacity-100 transition-opacity'
+					/>
+				)
+			}
+			<FormattedDate
+				date={publishedDate}
+				class=`dt-published ${lastModifiedDate ? 'group-hover:opacity-0 transition-opacity' : ''}`
+			/>
+		</a>
+		<ReadingTime class='opacity-65' body={body} />
+	</div>
+
+	<Author class='hidden' />
+
+	<h2 class='p-name font-bold mb-3'>
+		<a class='u-url w-fit line-clamp-2' href={postUrl}>
+			{title}
+		</a>
+	</h2>
+
+	<PostTags tags={tags} class='gap-2' />
+</article>

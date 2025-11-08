@@ -1,0 +1,50 @@
+---
+import { Image } from 'astro:assets';
+import Tag from '@components/partials/Tag.astro';
+
+interface Props {
+	title: string;
+	description: string;
+	link: string;
+	img?: ImageMetadata;
+	tags: string[];
+	class?: string;
+}
+
+const { title, description, img, tags, link, class: className } = Astro.props;
+---
+
+<article
+	class:list={[
+		'rounded-xl p-4 gap-4 flex shadow-xl hover:shadow-2xl transition-shadow flex-col md:flex-row items-start bg-white dark:bg-dracula',
+		className,
+	]}
+>
+	{
+		img && (
+			<a rel='noopener noreferrer' target='_blank' href={link} aria-label={title}>
+				<Image
+					class='rounded-xs aspect-[16/9] object-cover md:max-w-sm'
+					src={img}
+					alt={title}
+					loading='lazy'
+				/>
+			</a>
+		)
+	}
+	<div>
+		<h2 class='mb-2 text-2xl font-semibold'>
+			<a rel='noopener noreferrer' target='_blank' href={link}>{title}</a>
+		</h2>
+		<ul class='flex flex-wrap gap-2 mb-4'>
+			{
+				tags?.map((tag) => (
+					<li>
+						<Tag text={tag} />
+					</li>
+				))
+			}
+		</ul>
+		<p>{description}</p>
+	</div>
+</article>

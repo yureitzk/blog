@@ -1,0 +1,43 @@
+---
+import { START_YEAR, AUTHOR, INDIEWEB_PREVIOUS_URL, INDIEWEB_NEXT_URL } from '@src/config';
+import Webring from '@components/partials/Webring.astro';
+const currentYear = new Date().getFullYear();
+
+interface Props {
+	class?: string;
+	rest?: string[];
+}
+
+const { class: className, ...rest } = Astro.props;
+---
+
+<footer
+	class:list={['py-3 px-2 dark:bg-darkblack bg-gray-300', className]}
+	{...rest}
+>
+	<div class='flex justify-center gap-3'>
+		<span class='footer-link'>
+			<a
+				class='hocus:underline font-medium hocus:text-cornflowerblue dark:hocus:text-hotpink transition-colors'
+				href='/rss.xml'
+				target='_blank'>Feed</a
+			>
+		</span>
+		<span class='footer-link'>
+			<a
+				class='hocus:underline font-medium hocus:text-cornflowerblue dark:hocus:text-hotpink transition-colors'
+				href='/sitemap-index.xml'
+				target='_blank'>Sitemap</a
+			>
+		</span>
+	</div>
+	<p class='text-center'>
+		<span class='block'
+			>Copyright &copy; {
+				`${currentYear === START_YEAR ? currentYear : START_YEAR + ' - ' + currentYear}`
+			}
+			{AUTHOR}
+		</span>
+	</p>
+	<Webring class='justify-center' nextUrl={INDIEWEB_NEXT_URL} previousUrl={INDIEWEB_PREVIOUS_URL} />
+</footer>

@@ -1,0 +1,51 @@
+---
+import type { Post } from '@src/types/Post';
+import Layout from '@components/layouts/Layout.astro';
+import PostCard from '@components/partials/PostCard.astro';
+import Profile from '@components/partials/Profile/Profile.astro';
+import Footer from '@components/partials/Footer.astro';
+import { getAllPosts } from '@lib/utils';
+import { MAX_VISIBLE_POSTS_ON_MAIN_PAGE } from '@src/config';
+
+const allPosts = await getAllPosts();
+const renderedPosts = allPosts.slice(0, MAX_VISIBLE_POSTS_ON_MAIN_PAGE);
+---
+
+<Layout includeFooter={false} class='!mb-0'>
+	<div class='grid lg:grid-cols-[auto_1fr] gap-x-5 grid-cols-1'>
+		<Profile class='justify-self-center mb-4 md:mb-0 md:py-8 md:pt-0 lg:pt-8' />
+		<div class='mb-8'>
+			<ul class='h-feed flex flex-col gap-y-4'>
+				{
+					renderedPosts.map((post: Post) => (
+						<li>
+							<PostCard
+								title={post.data.title}
+								tags={post.data.tags}
+								slug={post.slug}
+								publishedDate={post.data.date}
+								lastModifiedDate={post.data.lastModifiedDate}
+								body={post.body}
+							/>
+						</li>
+					))
+				}
+			</ul>
+			{
+				allPosts.length > MAX_VISIBLE_POSTS_ON_MAIN_PAGE && (
+					<a
+						href='blog/'
+						class='py-1 px-3 font-bold w-fit block text-left mr-auto mb-0 bg-gradient-to-t from-cornflowerblue to-cornflowerblue bg-no-repeat bg-[length:100%_0%] bg-[position:0_88%] underline decoration-2 underline-offset-4 decoration-cornflowerblue hocus:bg-[length:100%_100%] transition-all ease-in-out duration-300 dark:from-hotpink dark:to-hotpink dark:decoration-hotpink mt-6'
+					>
+						More posts
+					</a>
+				)
+			}
+		</div>
+	</div>
+
+	<div class='grid lg:grid-cols-[auto_1fr] grid-cols-1 gap-x-5 grow'>
+		<div class='hidden lg:block w-48'></div>
+		<Footer class='mx-auto w-full mt-auto rounded-xl' />
+	</div>
+</Layout>

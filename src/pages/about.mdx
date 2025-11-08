@@ -1,0 +1,37 @@
+---
+---
+
+import Layout from '@components/layouts/Layout.astro';
+import Badge from '@components/partials/Badge.astro';
+import {
+	PGP_URL,
+	TELEGRAM_URL,
+	BLUESKY_URL,
+	TWITTER_URL,
+    MATRIX_URL,
+    EMAIL,
+    DISCORD_USERNAME,
+    DISCORD_ID_URL
+} from '@src/config';
+
+<Layout
+	title='About'
+    description="Hey, I'm Yurei TZK and welcome to my website! I mostly do web-related works, but like to explore other things as well."
+	class='prose max-w-none dark:prose-invert'
+>
+
+Hello, I'm Yurei and welcome to my website! Feel yourself at home :) \
+Mostly do web-related works, but like to explore other things as well. \
+And I'm probably a little bit too chronically online.
+
+## Contact
+
+- <a href={MATRIX_URL}>Matrix</a>
+- <a href={TWITTER_URL}>Twitter</a>
+- <a href={BLUESKY_URL}>Bluesky</a>
+- <a href={TELEGRAM_URL}>Telegram</a>
+- Email: {EMAIL}
+- Discord: <a href={DISCORD_ID_URL}>{DISCORD_USERNAME}</a>
+- <a href={PGP_URL}>PGP</a>
+
+</Layout>

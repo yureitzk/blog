@@ -1,0 +1,82 @@
+---
+title: "How to connect Android Phone Wirelessly to Chrome DevTools for debugging"
+date: 2025-11-5
+description: A brief tutorial for connecting your Android device through ADB to Chrome-based browsers for debugging.
+tags: [android]
+keywords: [android, adb, chrome remote debugging, android wireless remote debugging]
+cover: '@assets/img/thumbnails/adb-chrome-setup.png'
+---
+
+## Introduction
+
+I've been using `adb` for some time now and decided to document how I connect my phones to Chrome with minimal hassle. Unfortunately, many online tutorials are outdated or don't work for me for some reason, so I created this guide to hopefully be more helpful!
+
+## Setup
+
+### Enable Wireless Debugging
+
+On your phone:
+
+1. Open the settings app and navigate to `System` > `Developer Options` > `Wireless debugging`.
+
+2. Enable wireless debugging and note down your IP address.
+
+3. If you're using a VPN, ensure the IP address matches the one assigned by your Wi-Fi network in `Network & Internet` settings. If they don't match, disable the VPN or check [this GitHub issue](https://github.com/celzero/rethink-app/issues/1061) for possible workarounds if you VPN has similar settings to Rethink DNS.
+
+
+### Pair the Devices
+
+On your phone:
+
+1. Open the `Pair device with pairing code` menu in wireless debugging settings.
+
+2. Note down the pair code, IP address, and port.
+
+On your PC:
+
+1. Kill the `adb` server if it was previously started to avoid potential issues:
+
+
+```sh show-ps1
+adb kill-server
+```
+
+2. Start a new `adb` server:
+
+```sh show-ps1
+adb start-server
+```
+
+3. Initiate pairing with your Android device (replace `<ip>` and `<port>` with the values noted earlier):
+
+```sh show-ps1
+adb pair ip:port
+```
+
+Enter the PIN displayed on your phone when prompted. Upon successful pairing, you'll see a message like `Successfully paired to <ip>:<port> [guid=<device guid>]`.
+
+
+### Connect to Chrome
+
+1. Connect to your device using the following command (note that `<port>` will be different from the one you used on a previous step):
+
+```sh show-ps1
+adb connect ip:port
+```
+
+You should see a message like `connected to <ip>:<port>`.
+
+2. Open Chrome on your PC and navigate to `chrome://inspect/#devices`. Also, open Chrome Browser on Android.
+
+3. If Chrome doesn't forward dev tools automatically (happened to me on my recent phones for some reason):
+
+```sh show-ps1
+adb forward tcp:9222 localabstract:chrome_devtools_remote
+```
+
+Also, if `Inspect` button doesn't work for you, try `Inspect fallback` instead. I barely noticed a difference, despite the fact my Chrome version don't really match.
+
+
+## Final Words
+
+This is a bunch of my notes I turned into an article. Hopefully, it helps someone! If you encounter any issues or have suggestions for improvement, please let me know.

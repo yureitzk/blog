@@ -1,0 +1,114 @@
+---
+import { getImage } from 'astro:assets';
+import { SEO } from 'astro-seo';
+import { createURL } from '@lib/utils';
+import JsonLD from '@components/partials/JsonLD.astro';
+import type { Post } from '@src/types/Post';
+
+import {
+	TITLE,
+	DESCRIPTION,
+	KEYWORDS,
+	TWITTER_USERNAME,
+	AUTHOR,
+	GITHUB_URL,
+	PUBLIC_REMARK_URL
+} from '@src/config';
+
+import { pwaInfo } from 'virtual:pwa-info';
+
+interface Props {
+	title?: string;
+	description?: string;
+	keywords?: string[];
+	post?: Post;
+}
+
+const { title, description, keywords, post } = Astro.props;
+
+const pathname = new URL(Astro.request.url).pathname;
+const currentPath = pathname.slice(1);
+const site = `${Astro.site}` || 'example.com';
+const currentUrl = createURL(site, currentPath);
+const pageDescription = description || DESCRIPTION;
+const pageTitle = title || TITLE;
+const pageKeywords = keywords || KEYWORDS;
+
+let imageUrl = '';
+if (post && post.data.cover) {
+	const optimizedImage = await getImage({ src: post.data.cover });
+	imageUrl = `${createURL(site, optimizedImage.src)}`;
+} else {
+	imageUrl = createURL(site, 'android-chrome-512x512.png');
+}
+---
+
+<head>
+	<meta charset='utf-8' />
+	<link rel='apple-touch-icon' sizes='180x180' href='/apple-touch-icon.png' />
+	<link rel='icon' type='image/png' sizes='32x32' href='/favicon-32x32.png' />
+	<link rel='icon' type='image/png' sizes='16x16' href='/favicon-16x16.png' />
+	<meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
+	<meta name='keywords' content={pageKeywords.join(',')} />
+	<link rel='authorization_endpoint' href='https://indieauth.com/auth' />
+	<link rel='token_endpoint' href='https://tokens.indieauth.com/token' />
+	<meta name='author' content={AUTHOR} />
+	<meta name='generator' content={Astro.generator} />
+	<link rel='sitemap' href='/sitemap-index.xml' />
+	{GITHUB_URL && <link rel='me' href={GITHUB_URL} />}
+	<link
+		rel='alternate'
+		title={`${TITLE} RSS`}
+		href='/rss.xml'
+		type='application/rss+xml'
+	/>
+	{pwaInfo && <Fragment set:html={pwaInfo.webManifest.linkTag} />}
+	<script src='/src/pwa.ts'></script>
+
+	<SEO
+		title={title ? title : ''}
+		titleTemplate={`%s - ${TITLE}`}
+		titleDefault={TITLE}
+		description={pageDescription}
+		openGraph={{
+			basic: {
+				title: title ? `${title} - ${TITLE}` : TITLE,
+				type: 'website',
+				image: imageUrl,
+				url: currentUrl,
+			},
+			optional: {
+				description: `${pageDescription}`,
+			},
+		}}
+		TWITTER_USERNAME
+		&&
+		(
+		twitter={{
+			creator: TWITTER_USERNAME,
+			title: title ? `${title} - ${TITLE}` : TITLE,
+			description: `${pageDescription}`,
+			image: imageUrl,
+		}}
+		)
+		canonical={currentUrl}
+	/>
+
+	<JsonLD
+		site={site}
+		pathname={pathname}
+		pageTitle={pageTitle}
+		currentUrl={currentUrl}
+		pageDescription={pageDescription}
+		pageKeywords={pageKeywords}
+		post={post}
+	/>
+
+	{
+		post && (
+			<>
+				<link rel='dns-prefetch' href={PUBLIC_REMARK_URL} />
+			</>
+		)
+	}
+</head>

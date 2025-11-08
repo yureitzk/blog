@@ -1,0 +1,22 @@
+---
+interface Props {
+	pageNum: number;
+	isActive?: boolean;
+	pageHref: string;
+}
+
+const { pageNum, isActive, pageHref } = Astro.props;
+---
+
+<a
+	aria-label={`Go to ${pageNum} page`}
+	href={pageHref}
+	class={`flex items-center justify-center px-4 h-10 leading-tight
+${
+	isActive
+		? 'z-10 text-blue-600 border border-cornflowerblue bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white'
+		: 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-300 hover:text-gray-700 dark:bg-darkblack dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white'
+}`}
+>
+	{pageNum}
+</a>

@@ -1,0 +1,22 @@
+---
+import { AUTHOR } from '@src/config';
+
+interface Props {
+	class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<p
+	class={`text-gray-600 dark:text-gray-400 font-medium ${className}`}
+>
+	By
+	<a
+		rel='author'
+		href='/'
+		class='p-author h-card text-blue-600 dark:text-blue-400 hocus:underline font-semibold'
+	>
+		{AUTHOR}
+	</a>
+</p>

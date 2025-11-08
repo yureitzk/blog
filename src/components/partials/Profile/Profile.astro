@@ -1,0 +1,60 @@
+---
+import {
+	AUTHOR,
+	DISCORD_USERNAME,
+	STATUS,
+	NOTES,
+	TWITTER_URL,
+	BLUESKY_URL,
+	TELEGRAM_URL,
+	MATRIX_URL,
+	YOUTUBE_URL,
+	REDDIT_URL,
+	GITHUB_URL,
+	PGP_URL,
+} from '@src/config';
+import Socials from '@components/partials/Profile/Socials.astro';
+import Avatar from '@components/partials/Profile/Avatar.astro';
+
+interface Props {
+	class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<article
+	class:list={[
+		'h-card lg:border-2 md:p-4 max-w-full w-48 border-gray-600 flex flex-col items-center h-fit rounded-xl',
+		className,
+	]}
+>
+	<div class='relative'>
+		<Avatar class='mb-3' />
+		{
+			STATUS && (
+				<span
+					role='img'
+					aria-label='teacup without handle'
+					class='absolute z-1 rounded-full w-8 h-8 md:w-10 md:h-10 bottom-3 right-2 bg-white dark:bg-darkblack shadow-xl text-lg md:text-xl text-center py-0.5 md:py-1.5'
+				>
+					{STATUS}
+				</span>
+			)
+		}
+	</div>
+	<h2 class='p-name font-bold mb-1'>{AUTHOR}</h2>
+	<p class='opacity-80 mb-2 p-note text-center'>{NOTES}</p>
+	<Socials
+		class='flex gap-1 flex-wrap justify-center'
+		twitter={TWITTER_URL}
+		bluesky={BLUESKY_URL}
+		youtube={YOUTUBE_URL}
+		reddit={REDDIT_URL}
+		telegram={TELEGRAM_URL}
+		matrix={MATRIX_URL}
+		github={GITHUB_URL}
+		pgp={PGP_URL}
+		discord={DISCORD_USERNAME}
+	/>
+</article>

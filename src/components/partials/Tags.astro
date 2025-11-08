@@ -1,0 +1,75 @@
+---
+import { getPostsTags } from '@lib/utils';
+import { slug as slugify } from 'github-slugger';
+import { Icon } from 'astro-icon/components';
+import type { CollectionItem } from '@src/types/CollectionItem';
+import { MAX_TAGS } from '@src/config';
+import Tag from '@components/partials/Tag.astro';
+
+const allTags = await getPostsTags();
+
+interface Props {
+	activeTag?: string;
+	class?: string;
+}
+
+const { activeTag, class: className } = Astro.props;
+---
+
+<ul class:list={['flex gap-2 flex-wrap', className]} id='tagList'>
+	{
+		allTags.map((tag: CollectionItem, i) => (
+			<li class=`${i >= MAX_TAGS ? 'hidden' : ''}` data-visible=`${i >= MAX_TAGS ? 'hidden' : ''}`>
+				<Tag
+					href={`${activeTag === slugify(tag.value) ? '/blog/' : '/tags/' + slugify(tag.value)}`}
+					text={`#${tag.value} (${tag.count})`}
+					class={`py-1 px-2 ${activeTag === slugify(tag.value) ? 'flex items-center bg-gray-300 !border-gray-300 dark:bg-gray-600 dark:!border-gray-600' : ''}`}
+		>
+					{activeTag === slugify(tag.value) && (
+						<Icon name='mingcute:close-fill' class='ml-1 duration-300 transition-colors group-hover:text-gray-500 group-hover:dark:text-gray-300' />
+					)}
+				</Tag>
+			</li>
+		))
+	}
+
+	{allTags.length > MAX_TAGS && (
+	<li>
+		<button class='flex items-center h-full rounded-md border-2 border-cornflowerblue py-1 px-2 transition-colors hover:bg-cornflowerblue focus:outline-hidden hover:dark:bg-hotpink hover:text-gray-200 dark:border-hotpink gap-x-1' id='showMoreBtn'>
+			<span data-alt-text='Show Less'>Show more</span>
+			<Icon name="meteor-icons:plus" class="plus h-4 w-4" />
+			<Icon name="meteor-icons:minus" class="minus hidden h-4 w-4" />
+		</button>
+	</li>
+	)}
+</ul>
+
+<script>
+	const list = document.querySelector<HTMLElement>('#tagList');
+	const listItems = list?.querySelectorAll('li');
+	const showBtn = document.querySelector<HTMLElement>('#showMoreBtn');
+	const btnTextWrapper = showBtn?.querySelector('span');
+
+	const currentText = btnTextWrapper?.innerText;
+	const plusIcon = showBtn?.querySelector('.plus');
+	const minusIcon = showBtn?.querySelector('.minus');
+
+	const handleButton = () => {
+		if (list) {
+			listItems?.forEach((item) => {
+				if (item.dataset.visible === 'hidden') {
+					item.classList.toggle('hidden');
+				}
+			});
+		}
+
+		if (!showBtn || !btnTextWrapper) return;
+		btnTextWrapper.innerText = btnTextWrapper.dataset.altText || '';
+		btnTextWrapper.dataset.altText = currentText;
+
+		plusIcon?.classList.toggle('hidden');
+		minusIcon?.classList.toggle('hidden');
+	};
+
+	showBtn?.addEventListener('click', handleButton);
+</script>

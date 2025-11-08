@@ -1,0 +1,304 @@
+---
+import { Image } from 'astro:assets';
+import type { Post } from '@src/types/Post';
+import { Icon } from 'astro-icon/components';
+import Layout from '@components/layouts/Layout.astro';
+import ReadingTime from '@components/partials/ReadingTime.astro';
+import Footer from '@components/partials/Footer.astro';
+import Comments from '@components/partials/Comments.astro';
+import FormattedDate from '@components/partials/FormattedDate.astro';
+import PostTags from '@components/partials/PostTags.astro';
+import Author from '@components/partials/Author.astro';
+import ArticleImage from '@components/partials/ArticleImage.astro';
+import TableOfContents from '@components/partials/TableOfContents/TableOfContents.astro';
+import RelatedPosts from '@components/partials/RelatedPosts.astro';
+import { getAllPosts } from '@lib/utils';
+
+interface Props {
+	post: Post;
+}
+
+export async function getStaticPaths() {
+	const blogPosts = await getAllPosts();
+	return blogPosts.map((post: Post) => ({
+		params: { slug: post.slug },
+		props: { post },
+	}));
+}
+const { post } = Astro.props;
+const { Content, headings } = await post.render();
+---
+
+<Layout
+	includeFooter={false}
+	class='!mb-0'
+	title={post.data.title}
+	keywords={post.data.keywords}
+	post={post}
+	description={post.data.description}
+>
+	<div
+		class='flex flex-col md:flex-row-reverse justify-center gap-x-3'
+		data-pagefind-body
+	>
+		{post.data.toc && <TableOfContents headings={headings} />}
+		<div class='max-w-full min-w-0'>
+			<article
+				class='h-entry prose mb-8 overflow-hidden lg:prose-xl max-w-none dark:prose-invert'
+			>
+				<div class='relative'>
+					<Image
+						fetchpriority='high'
+						loading={'eager'}
+						src={post.data.cover}
+						alt={post.data.title}
+						widths={[360, 640, 768, 1024, 1080, 1280, 1668, 2048]}
+						sizes='(min-width: 1024px) 1024px, 100vw'
+						class='object-cover object-center block w-full max-w-full not-prose mb-8'
+					/>
+				</div>
+				<h1 class='md:!text-5xl md:!leading-[1.2] group'>
+					<span class='p-name'>{post.data.title}</span>
+					<a
+						rel='bookmark'
+						href={'/blog/' + post.slug}
+						class='u-url inline-block w-[1em] h-[1em] text-inherit align-[-0.125em] opacity-0 transition-colors text-silver hover:text-lightslategray dark:text-lightslategray dark:hover:text-lightgray focus:opacity-100 hover:opacity-100 group-hover:opacity-100 not-prose pointer-coarse:opacity-100'
+					>
+						<span class='sr-only'>A link to the article</span>
+						<Icon name='mingcute:link-2-fill' />
+					</a>
+				</h1>
+
+				<Author class='not-prose' />
+
+				<div class='flex gap-x-4 gap-y-1 flex-wrap mb-6'>
+					<span class='flex items-center gap-x-1 opacity-85'>
+						<span class='sr-only'>Publication date</span>
+						<Icon name='meteor-icons:calendar' class='h-6 w-6' />
+						<FormattedDate
+							class='dt-published'
+							date={post.data.date}
+							longMonth={true}
+						/>
+					</span>
+
+					{
+						post.data.lastModifiedDate && (
+							<span class='flex items-center gap-x-1 opacity-85'>
+								<span class='sr-only'>Last modified date</span>
+								<Icon name='meteor-icons:clock-rotate' class='h-6 w-6' />
+								<FormattedDate
+									class='dt-updated'
+									date={post.data.lastModifiedDate}
+									longMonth={true}
+								/>
+							</span>
+						)
+					}
+
+					<span class='flex items-center gap-x-1 opacity-85'>
+						<span class='sr-only'>Reading time</span>
+						<Icon name='meteor-icons:clock' class='h-6 w-6' />
+						<ReadingTime body={post.body} />
+					</span>
+				</div>
+
+				<div class='e-content content'>
+					<Content components={{ img: ArticleImage }} />
+				</div>
+
+				<hr class='my-6 border-dashed' />
+
+				<PostTags tags={post.data.tags} class='mb-5 gap-3' />
+
+				<Comments />
+
+				<RelatedPosts tags={post.data.tags} slug={post.slug} />
+			</article>
+			<Footer class='mx-auto w-full mt-auto rounded-xl' />
+		</div>
+	</div>
+
+	<script>
+		import {
+			getDocHeight,
+			getTocLinkFromHeading,
+			getTocParentLinkFromTocLink,
+			markTocItemActive,
+			markTocItemInactive,
+		} from '@src/lib/helpers';
+
+		const headings: HTMLElement[] = [
+			...document.querySelectorAll<HTMLElement>(
+				'article > div.content > h2, article > div.content > h3, article > div.content > h4, article > div.content > h5, article > div.content > h6',
+			),
+		];
+		if (headings.length !== 0) {
+			const visibleHeadings = new Set<Element>();
+			let resizeDebounce: number | undefined;
+			let currentObserver: IntersectionObserver;
+			let height = getDocHeight();
+
+			function findTocHeadingFor(h: HTMLElement) {
+				const idx = headings.indexOf(h);
+				for (let i = idx; i >= 0; i--) {
+					const tag = headings[i].tagName.toLowerCase();
+					if (tag === 'h2' || tag === 'h3') return headings[i];
+				}
+				return headings[0];
+			}
+
+			function beginObservation(docHeight: number) {
+				const onIntersect = (entries: IntersectionObserverEntry[]) => {
+					entries.forEach((entry) => {
+						if (entry.isIntersecting) visibleHeadings.add(entry.target);
+						else visibleHeadings.delete(entry.target);
+					});
+
+					const effectiveVisible = Array.from(visibleHeadings.values())
+						.filter((el): el is HTMLElement => el instanceof HTMLElement)
+						.map(findTocHeadingFor);
+
+					const seen = new Set<HTMLElement>();
+					const deduped = effectiveVisible.filter((h) => {
+						if (seen.has(h)) return false;
+						seen.add(h);
+						return true;
+					});
+
+					const lastVisible = deduped.sort(
+						(a, b) => headings.indexOf(b) - headings.indexOf(a),
+					)[0];
+					if (!lastVisible) return;
+
+					headings.forEach((heading) => {
+						const effective = findTocHeadingFor(heading);
+						const tocLink = getTocLinkFromHeading(effective);
+						const parentTocLink = getTocParentLinkFromTocLink(tocLink);
+						if (!tocLink) return;
+
+						if (effective === lastVisible && parentTocLink) {
+							markTocItemActive(tocLink);
+							markTocItemActive(parentTocLink);
+						} else {
+							markTocItemInactive(tocLink);
+						}
+					});
+				};
+
+				const options = {
+					rootMargin: `${docHeight}px 0px -80% 0px`,
+					threshold: 0.1,
+				};
+
+				const observer = new IntersectionObserver(onIntersect, options);
+				headings.forEach((heading) => observer.observe(heading));
+
+				return observer;
+			}
+
+			const firstTocLink = getTocLinkFromHeading(headings[0]);
+			if (firstTocLink) markTocItemActive(firstTocLink);
+			currentObserver = beginObservation(height);
+
+			window.addEventListener('resize', () => {
+				if (resizeDebounce) window.clearTimeout(resizeDebounce);
+				resizeDebounce = window.setTimeout(() => {
+					const heightAfterResize = getDocHeight();
+					if (height !== heightAfterResize) {
+						if (currentObserver) currentObserver.disconnect();
+						currentObserver = beginObservation(heightAfterResize);
+					}
+				}, 200);
+			});
+
+			const tocList = document.getElementById('toc-list') as HTMLElement | null;
+			if (tocList) {
+				const tocItems = Array.from(
+					tocList.querySelectorAll('.toc-item'),
+				) as HTMLElement[];
+
+				tocItems.forEach((tocItem) => {
+					tocItem.addEventListener('click', (ev) => {
+						ev.preventDefault();
+						const href = (tocItem.getAttribute('href') || '').trim();
+						const id = href.slice(1);
+						const target = id ? document.getElementById(id) : null;
+						if (!target) return;
+
+						target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+					});
+				});
+			}
+		}
+	</script>
+
+	<script>
+		import { detectOveflow } from '@src/lib/helpers';
+
+		let codeBlocks: HTMLElement[] = Array.from(
+			document.querySelectorAll('[data-rehype-pretty-code-figure]'),
+		);
+
+		for (let codeBlock of codeBlocks) {
+			const wrapper: HTMLElement | null =
+				codeBlock?.querySelector('.code-wrapper');
+			const codeBlockPre: HTMLElement | null = codeBlock?.querySelector('pre');
+
+			if (wrapper && codeBlockPre) {
+				let resizeDebounce: number | undefined;
+				const wrapButton = wrapper.querySelector('.wrap-text');
+
+				wrapButton?.classList.toggle(
+					'wrap-text--visible',
+					detectOveflow(codeBlockPre),
+				);
+				wrapButton?.addEventListener('click', () => {
+					codeBlockPre.classList.toggle('whitespace-pre-wrap');
+				});
+
+				window.addEventListener('resize', () => {
+					if (resizeDebounce) window.clearTimeout(resizeDebounce);
+					resizeDebounce = window.setTimeout(() => {
+						wrapButton?.classList.toggle(
+							'wrap-text--visible',
+							detectOveflow(codeBlockPre),
+						);
+					}, 200);
+				});
+
+				const copyButton: HTMLButtonElement | null =
+					wrapper.querySelector('.copy-text');
+				if (copyButton) {
+					copyButton.addEventListener('click', async () => {
+						await copyCode(codeBlock, copyButton);
+					});
+				}
+			}
+		}
+
+		async function copyCode(block: HTMLElement, button: HTMLButtonElement) {
+			let code = block.querySelector('code');
+			let text = code?.innerText;
+
+			if (text) {
+				await navigator.clipboard?.writeText(text);
+
+				const buttonOriginalAriaLabel = button.getAttribute('aria-label');
+
+				// Visual feedback that task is completed
+				button.setAttribute('aria-label', 'Copied');
+				const copiedIconClass = 'copy-text--copied';
+				button.classList.add(copiedIconClass);
+				button.disabled = true;
+
+				setTimeout(() => {
+					if (buttonOriginalAriaLabel)
+						button.setAttribute('aria-label', buttonOriginalAriaLabel);
+					button.classList.remove(copiedIconClass);
+					button.disabled = false;
+				}, 700);
+			}
+		}
+	</script>
+</Layout>

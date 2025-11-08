@@ -1,0 +1,63 @@
+---
+import Layout from '@components/layouts/Layout.astro';
+import Pagination from '@components/partials/Pagination/Pagination.astro';
+import Tags from '@components/partials/Tags.astro';
+import PostCardWithImage from '@components/partials/PostCardWithImage.astro';
+import { PAGE_SIZE } from '@src/config';
+
+import { getAllPosts } from '@lib/utils';
+import type { Post } from '@src/types/Post';
+
+import type { GetStaticPaths } from 'astro';
+
+export const getStaticPaths = (async ({ paginate }) => {
+	const allPosts = await getAllPosts();
+	const posts = allPosts
+		.sort(
+			(a, b) => new Date(a.data.date).getTime() - new Date(b.data.date).getTime(),
+		)
+		.reverse();
+
+	return paginate(posts, { pageSize: PAGE_SIZE });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+const pathname = new URL(Astro.request.url).pathname.split('/');
+const firstPath = pathname[1];
+---
+
+<Layout
+	title='Posts'
+	description='See my latest blog posts here!'
+>
+	<Tags class='mb-4' />
+	<ul class='mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
+		{
+			page.data.map((post: Post) => (
+				<li>
+					<PostCardWithImage
+						title={post.data.title}
+						tags={post.data.tags}
+						slug={post.slug}
+						cover={post.data.cover}
+						publishedDate={post.data.date}
+						body={post.body}
+						lastModifiedDate={post.data.lastModifiedDate}
+						class={'h-full'}
+					/>
+				</li>
+			))
+		}
+	</ul>
+
+	<Pagination
+		length={page.lastPage}
+		currentUrl={page.url.current}
+		currentPage={page.currentPage}
+		firstUrl={`/${firstPath}`}
+		prevUrl={page.url.prev}
+		nextUrl={page.url.next}
+		lastUrl={`/${firstPath}/${page.lastPage}`}
+		class='mx-auto w-fit'
+	/>
+</Layout>

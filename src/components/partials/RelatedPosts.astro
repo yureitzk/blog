@@ -1,0 +1,50 @@
+---
+import type { Post } from '@src/types/Post';
+import { getAllPosts } from '@lib/utils';
+import { RELATED_POSTS_LIMIT } from '@src/config';
+import RelatedPost from '@components/partials/RelatedPost.astro';
+
+interface Props {
+	tags: string[];
+	slug: string;
+}
+
+const { slug, tags } = Astro.props;
+const allPosts = await getAllPosts();
+
+const posts = allPosts
+	.filter(
+		(post: Post) =>
+			post.slug != slug &&
+			post.data.tags?.filter((tag) => tags.includes(tag)).length > 0,
+	)
+	.map((post: Post) => ({
+		...post,
+		sameTagCount: post.data.tags.filter((tag: string) => tags.includes(tag))
+			.length,
+	}))
+	.sort((a, b) => {
+		if (a.sameTagCount > b.sameTagCount) return -1;
+		if (b.sameTagCount > a.sameTagCount) return 1;
+
+		if (a.data.date > b.data.date) return -1;
+		if (a.data.date < b.data.date) return 1;
+
+		return 0;
+	})
+	.slice(0, RELATED_POSTS_LIMIT);
+---
+
+{
+	posts.length > 0 && (
+		<div>
+			<h2 class='text-left !text-xl'>You might also like...</h2>
+			{posts.map((post: Post, i: number) => (
+				<RelatedPost
+					post={post}
+					class={`${i !== posts.length - 1 ? 'mb-3' : ''}`}
+				/>
+			))}
+		</div>
+	)
+}

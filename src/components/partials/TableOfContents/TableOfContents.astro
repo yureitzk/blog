@@ -1,0 +1,129 @@
+---
+import { Icon } from 'astro-icon/components';
+import NestedList from '@components/partials/TableOfContents/NestedHeadingList.astro';
+import type { HeadingWithSubheadings } from '@src/types/Headings';
+import type { MarkdownHeading } from 'astro';
+
+type Props = {
+	headings: MarkdownHeading[];
+};
+const { headings } = Astro.props;
+
+function buildNestedHeadings(
+	headings: MarkdownHeading[],
+): HeadingWithSubheadings[] {
+	const root: HeadingWithSubheadings[] = [];
+	const stack: HeadingWithSubheadings[] = [];
+
+	headings.forEach((heading) => {
+		if (heading.depth > 3) return;
+
+		const newHeading = { ...heading, subheadings: [] };
+
+		while (stack.length > 0 && stack.at(-1)!.depth >= heading.depth) {
+			stack.pop();
+		}
+
+		if (stack.length === 0) {
+			root.push(newHeading);
+		} else {
+			stack.at(-1)!.subheadings.push(newHeading);
+		}
+
+		stack.push(newHeading);
+	});
+
+	return root;
+}
+
+const groupedHeadings = buildNestedHeadings(headings);
+---
+
+{
+	headings.length > 0 && (
+		<nav
+			id='table-of-contents'
+			aria-label='Table Of Contents'
+			class='table-of-contents md:max-w-40 xl:max-w-44 2xl:max-w-64 shrink-0'
+		>
+			<button
+				data-collapse-toggle='toc-list'
+				type='button'
+				class='md:hidden text-sm px-2 py-1 dark:bg-slategray dark:hover:bg-gray-600 bg-gray-300 hover:bg-silver transition-colors rounded-md cursor-pointer'
+				aria-controls='toc-list'
+				aria-expanded='false'
+			>
+				<span class='sr-only'>Open table of contents</span>
+				In this article
+			</button>
+
+			<div class='md:mb-20 mt-2 md:mt-0 sticky top-[6rem] overflow-x-hidden'>
+				<button
+					aria-controls='toc-list'
+					class='hidden md:block mb-3 p-1 dark:hover:bg-slategray hover:bg-silver transition-colors rounded-md cursor-pointer'
+					id='toggle-toc-list-btn'
+				>
+					<span class='sr-only text' data-alt-text='Show table of contents'>
+						Hide table of contents
+					</span>
+					<Icon name='ri:sidebar-fold-line' class='w-6 h-6 fold-icon' />
+					<Icon name='ri:sidebar-unfold-line' class='w-6 h-6 hidden unfold-icon' />
+				</button>
+				<NestedList
+					headings={groupedHeadings}
+					class={
+						'scrollbar-thin scrollbar-thumb-silver dark:scrollbar-thumb-lightslategray scrollbar-hover:scrollbar-thumb-gray-400 dark:scrollbar-hover:scrollbar-thumb-gray-500 scrollbar-active:scrollbar-thumb-gray-500 dark:scrollbar-active:scrollbar-thumb-gray-400 max-h-[calc(100vh-10rem)] md:max-h-[calc(100vh-12rem)] overflow-y-auto rounded-xl md:rounded-none hidden p-4 md:p-0 bg-lightgray dark:bg-darkblack md:bg-transparent md:dark:bg-transparent md:block md:transition-transform transition-opacity md:w-40 xl:w-44 2xl:w-64 min-h-40	 md:min-h-auto'
+					}
+					id='toc-list'
+				/>
+			</div>
+		</nav>
+	)
+}
+
+<script>
+	const toggleBtn = document.querySelector<HTMLButtonElement>(
+		'#toggle-toc-list-btn',
+	);
+	const toggleBtnText = toggleBtn?.querySelector<HTMLElement>('.text');
+	const tocList = document.querySelector<HTMLElement>('#toc-list');
+	const foldIcon = toggleBtn?.querySelector('.fold-icon');
+	const unfoldIcon = toggleBtn?.querySelector('.unfold-icon');
+
+	const zeroWidthClass = 'md:!w-0';
+	const invisibleClass = 'md:invisible';
+
+	if (tocList) {
+		tocList.addEventListener('transitionend', ({ propertyName }) => {
+			if (propertyName === 'translate') {
+				const isHidden = tocList.getAttribute('aria-hidden') === 'true';
+				tocList.classList.toggle(zeroWidthClass, isHidden);
+				tocList.classList.toggle(invisibleClass, isHidden);
+			}
+		});
+	}
+
+	toggleBtn?.addEventListener('click', () => {
+		if (!tocList || !toggleBtnText) return;
+
+		[toggleBtnText.innerText, toggleBtnText.dataset.altText] = [
+			toggleBtnText.dataset.altText || '',
+			toggleBtnText.innerText,
+		];
+
+		const istocListHidden = tocList.hasAttribute('aria-hidden');
+		tocList.classList.remove(zeroWidthClass);
+
+		if (istocListHidden) {
+			tocList.removeAttribute('aria-hidden');
+			tocList.classList.remove(invisibleClass);
+		} else {
+			tocList.setAttribute('aria-hidden', 'true');
+		}
+
+		tocList.classList.toggle('md:translate-x-full');
+
+		foldIcon?.classList.toggle('hidden');
+		unfoldIcon?.classList.toggle('hidden');
+	});
+</script>

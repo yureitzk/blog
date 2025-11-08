@@ -1,0 +1,18 @@
+---
+import { Icon } from 'astro-icon/components';
+
+interface Props {
+	url?: string;
+}
+
+const { url } = Astro.props;
+---
+
+<a
+	aria-label='Go to next page'
+	href={url}
+	class='flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-300 hover:text-gray-700 dark:bg-darkblack dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white'
+>
+	<span class='sr-only'>Next</span>
+	<Icon name='next' height='0.75rem' width='0.75rem' />
+</a>

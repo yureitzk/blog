@@ -1,0 +1,119 @@
+---
+import { Schema } from 'astro-seo-schema';
+import { getImage } from 'astro:assets';
+import { createURL, formatDate, createBreadcrumbList } from '@lib/utils';
+import type { Post } from '@src/types/Post';
+import type {
+	Thing,
+	Person,
+	BlogPosting,
+	WebSite,
+	WebPage,
+	Blog,
+} from 'schema-dts';
+
+import { TITLE, DESCRIPTION, AUTHOR } from '@src/config';
+
+interface Props {
+	site: string;
+	pathname: string;
+	pageTitle: string;
+	currentUrl: string;
+	pageDescription: string;
+	pageKeywords: string[];
+	post?: Post;
+}
+
+const {
+	site,
+	pathname,
+	pageTitle,
+	pageKeywords,
+	post,
+	currentUrl,
+	pageDescription,
+} = Astro.props;
+
+const currentPath = pathname.slice(1);
+
+const graphArray: Thing[] = [];
+
+const graphAuthorObj: Person = {
+	'@type': 'Person',
+	name: AUTHOR,
+	url: site,
+};
+
+const graphWebsite: WebSite = {
+	'@type': 'WebSite',
+	url: `${site}`,
+	name: `${TITLE}`,
+	description: `${DESCRIPTION}`,
+	inLanguage: 'en',
+	keywords: pageKeywords,
+	author: graphAuthorObj,
+};
+
+const graphWebPage: WebPage = {
+	'@type': 'WebPage',
+	'@id': currentUrl,
+	url: `${site}`,
+	name: pageTitle,
+	description: pageDescription,
+	inLanguage: 'en',
+	keywords: pageKeywords,
+	publisher: graphAuthorObj,
+	author: graphAuthorObj,
+};
+
+const graphBlog: Blog = {
+	'@type': 'Blog',
+	name: `${TITLE}`,
+	description: `${DESCRIPTION}`,
+	url: `${site}`,
+	publisher: graphAuthorObj,
+	author: graphAuthorObj,
+};
+
+const breadcrumbList = createBreadcrumbList(site, pathname, pageTitle);
+graphArray.push(breadcrumbList);
+
+if (currentPath === '/' || currentPath === '') {
+	graphArray.push(graphWebsite);
+	graphArray.push(graphBlog);
+} else if (currentPath.split('/').filter(Boolean)[0] === 'blog') {
+	graphArray.push(graphBlog);
+} else {
+	graphArray.push(graphWebPage);
+}
+
+if (post) {
+	const optimizedImage = await getImage({ src: post.data.cover });
+	const imageUrl = `${createURL(site, optimizedImage.src)}`;
+
+	const graphBlogPosting: BlogPosting = {
+		'@type': 'BlogPosting',
+		headline: `${pageTitle}`,
+		author: graphAuthorObj,
+		datePublished: `${new Date(post.data.date).toISOString()}`,
+		dateCreated: `${formatDate(post.data.date)}`,
+		description: pageDescription,
+		url: `${currentUrl}`,
+		inLanguage: 'en',
+		image: imageUrl,
+		mainEntityOfPage: currentUrl,
+		keywords: pageKeywords,
+	};
+
+	if (post.data.lastModifiedDate) graphBlogPosting.dateModified = `${new Date(post.data.lastModifiedDate).toISOString()}`
+
+	graphArray.push(graphBlogPosting);
+}
+---
+
+<Schema
+	item={{
+		'@context': 'https://schema.org',
+		'@graph': graphArray,
+	}}
+/>

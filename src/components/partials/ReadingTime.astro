@@ -1,0 +1,16 @@
+---
+interface Props {
+	body: string;
+	class?: string;
+}
+
+import { READING_WORDS_PER_MINUTE } from '@src/config';
+import readingTime from 'reading-time';
+
+const { body, class: className } = Astro.props;
+const { text } = readingTime(body || '', {
+	wordsPerMinute: READING_WORDS_PER_MINUTE,
+});
+---
+
+<span class:list={[className]}>{text}</span>

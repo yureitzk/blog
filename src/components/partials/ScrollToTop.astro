@@ -1,0 +1,94 @@
+---
+import { Icon } from 'astro-icon/components';
+---
+
+<button
+	id='scrollToTopBtn'
+	class='scrollToTopBtn group rounded-full opacity-0 transition-all duration-300 ease-in-out focus:outline-hidden fixed bottom-8 right-4 md:right-10 z-20 h-10 w-10'
+>
+	<span class='block relative'>
+		<span class='sr-only'>Back to top</span>
+		<Icon
+			name='mingcute:up-fill'
+			class='h-6 w-6 absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2'
+		/>
+		<svg class='w-full h-full rounded-full' viewBox='0 0 100 100'>
+			<!-- Background circle -->
+			<circle
+				class='fill-gray-300 text-gray-300 dark:fill-slategray dark:text-slategray transition-colors rounded-full group-hover:dark:fill-gray-600 group-hover:dark:text-gray-600 group-hover:fill-silver group-hover:text-silver stroke-current'
+				stroke-width='10'
+				cx='50'
+				cy='50'
+				r='40'
+				fill='transparent'></circle>
+			<!-- Progress circle -->
+			<circle
+				id='progressCircle'
+				class='group-hover:fill-silver group-hover:dark:fill-gray-600 rounded-full transition-colors stroke-current text-cornflowerblue dark:text-indigo-500 transition-[stroke-dashoffset] [transform:rotate(-90deg)] [transform-origin:50%_50%]'
+				stroke-width='10'
+				stroke-linecap='round'
+				cx='50'
+				cy='50'
+				r='40'
+				fill='transparent'
+				stroke-dasharray='251.2'
+				stroke-dashoffset='calc(251.2px - (251.2px * 0) / 100)'></circle>
+		</svg>
+	</span>
+</button>
+
+<script>
+	import { getTocLinkFromHeading, markTocItemActive, markTocItemInactive } from '@src/lib/helpers';
+
+	const scrollToTopBtn = document.querySelector('#scrollToTopBtn');
+	const rootElement = document.body;
+	let lastScrollTop = 0;
+
+	function handleScroll() {
+		const progressCircle: HTMLElement | null | undefined =
+			scrollToTopBtn?.querySelector('#progressCircle');
+		const scrollTotal = rootElement.scrollHeight - rootElement.clientHeight;
+		let currentScroll = rootElement.scrollTop;
+		const scrollProgress = (currentScroll / scrollTotal) * 100;
+
+		const strokeDasharray = 251.2;
+		const newDashoffset =
+			strokeDasharray - (strokeDasharray * scrollProgress) / 100;
+		if (progressCircle)
+			progressCircle.style.strokeDashoffset = `${newDashoffset}px`;
+
+		if (
+			rootElement.scrollTop / scrollTotal > 0.15 &&
+			currentScroll < lastScrollTop
+		) {
+			scrollToTopBtn?.classList.add('scrollToTopBtn--visible');
+		} else {
+			scrollToTopBtn?.classList.remove('scrollToTopBtn--visible');
+		}
+
+		lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+	}
+
+	function scrollToTop() {
+		rootElement.scrollTo({
+			top: 0,
+			behavior: 'smooth',
+		});
+
+		const headings: HTMLElement[] = [
+			...document.querySelectorAll<HTMLElement>(
+				'article > div.content > h2, article > div.content > h3',
+			),
+		];
+
+		headings.forEach((heading) => {
+			let tocLink: HTMLElement | null = getTocLinkFromHeading(heading);
+			if (tocLink) markTocItemInactive(tocLink);
+		})
+		const firstTocLink = getTocLinkFromHeading(headings[0]);
+		if (firstTocLink) markTocItemActive(firstTocLink);
+	}
+
+	scrollToTopBtn?.addEventListener('click', scrollToTop);
+	document.body.addEventListener('scroll', handleScroll, { passive: true });
+</script>

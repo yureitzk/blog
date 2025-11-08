@@ -1,0 +1,21 @@
+---
+import { slug as slugify } from 'github-slugger';
+import Tag from '@components/partials/Tag.astro';
+
+interface Props {
+	tags: string[];
+	class?: string;
+}
+
+const { tags, class: className } = Astro.props;
+---
+
+<ul class:list={['!pl-0 !ps-0 flex flex-wrap list-none', className]}>
+	{
+		tags.map((tag) => (
+			<li class='p-category !px-0 !my-0'>
+				<Tag href={'/tags/' + slugify(tag)} text={`#${tag}`} class={'py-0.5 px-1'} />
+			</li>
+		))
+	}
+</ul>

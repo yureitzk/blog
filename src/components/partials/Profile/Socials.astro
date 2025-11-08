@@ -1,0 +1,141 @@
+---
+import SocialLink from '@components/partials/Profile/SocialLink.astro';
+
+interface Props {
+	twitter?: string;
+	bluesky?: string;
+	youtube?: string;
+	github?: string;
+	reddit?: string;
+	telegram?: string;
+	discord?: string;
+	matrix?: string;
+	pgp?: string;
+	class?: string;
+}
+
+const {
+	twitter,
+	bluesky,
+	youtube,
+	reddit,
+	github,
+	telegram,
+	discord,
+	matrix,
+	pgp,
+	class: className,
+} = Astro.props;
+---
+
+<ul class:list={[className]}>
+
+	{
+		pgp && (
+			<li>
+				<SocialLink
+					url={pgp}
+					description={'PGP key (link opens in new tab)'}
+					iconName={'ri:lock-2-line'}
+				/>
+			</li>
+		)
+	}
+
+	{
+		matrix && (
+			<li>
+				<SocialLink
+					url={matrix}
+					description={'Matrix (link opens in new tab)'}
+					iconName={'ph:matrix-logo-bold'}
+				/>
+			</li>
+		)
+	}
+
+	{
+		telegram && (
+			<li>
+				<SocialLink
+					url={telegram}
+					description={'Telegram (link opens in new tab)'}
+					iconName={'ri:telegram-fill'}
+				/>
+			</li>
+		)
+	}
+
+	{
+		discord && (
+			<li>
+				<SocialLink
+					clipboard={true}
+					url={discord}
+					description={'Discord (username copies to clipboard)'}
+					iconName={'ri:discord-fill'}
+				/>
+			</li>
+		)
+	}
+
+	{
+		github && (
+			<li>
+				<SocialLink
+					url={github}
+					description={'GitHub (link opens in new tab)'}
+					iconName={'ri:github-fill'}
+				/>
+			</li>
+		)
+	}
+
+	{
+		twitter && (
+			<li>
+				<SocialLink
+					url={twitter}
+					description={'Twitter (link opens in new tab)'}
+					iconName={'ri:twitter-fill'}
+				/>
+			</li>
+		)
+	}
+
+	{
+		bluesky && (
+			<li>
+				<SocialLink
+					url={bluesky}
+					description={'Bluesky (link opens in new tab)'}
+					iconName={'ri:bluesky-fill'}
+				/>
+			</li>
+		)
+	}
+
+	{
+		youtube && (
+			<li>
+				<SocialLink
+					url={youtube}
+					description={'YouTube (link opens in new tab)'}
+					iconName={'ri:youtube-fill'}
+				/>
+			</li>
+		)
+	}
+
+	{
+		reddit && (
+			<li>
+				<SocialLink
+					url={reddit}
+					description={'Reddit (link opens in new tab)'}
+					iconName={'ri:reddit-fill'}
+				/>
+			</li>
+		)
+	}
+</ul>

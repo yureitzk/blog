@@ -1,0 +1,29 @@
+---
+import Layout from '@components/layouts/Layout.astro';
+import ProjectCard from '@components/partials/ProjectCard.astro';
+
+import isaacFlashSaveEditorImage from '@assets/img/thumbnails/isaac-flash-save-editor.png';
+import lodEndModeImage from '@assets/img/thumbnails/lowendmod-extension.png';
+---
+
+<Layout
+	title='Projects'
+	description='Just things I work/worked on.'
+	class='space-y-7'
+>
+	<ProjectCard
+		title={'LowEndMod'}
+		description={'A browser extension that adds various enhancements and usability tweaks to the LowEndTalk forum.'}
+		tags={['TypeScript', 'Browser Extension', 'Svelte']}
+		link={'https://github.com/yureitzk/lowendmod'}
+		img={lodEndModeImage}
+	/>
+	<ProjectCard
+		title={'The Binding of Isaac Flash Save Editor'}
+		description={'An editor for The Binding of Isaac (Flash version) `serial.txt` save file. Can be used as a library or through the CLI interface.'}
+		tags={['TypeScript', 'CLI']}
+		link={'https://github.com/yureitzk/tboi-flash-save-editor'}
+		img={isaacFlashSaveEditorImage}
+	/>
+
+</Layout>

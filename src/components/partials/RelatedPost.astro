@@ -1,0 +1,23 @@
+---
+import type { Post } from '@src/types/Post';
+import FormattedDate from '@components/partials/FormattedDate.astro';
+
+interface Props {
+	post: Post;
+	class?: string;
+}
+
+const { post, class: className } = Astro.props;
+---
+
+<header class:list={[className]}>
+	<h3 class='!mt-0 !mb-0 !text-lg line-clamp-2'>
+		<a
+			class='hover:text-cornflowerblue dark:hover:text-hotpink transition-colors'
+			href={'/blog/' + post.slug}
+		>
+			{post.data.title}</a
+		>
+	</h3>
+	<FormattedDate class='text-base' date={post.data.date} />
+</header>

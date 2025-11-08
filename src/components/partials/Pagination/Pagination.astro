@@ -1,0 +1,108 @@
+---
+import PrevButton from '@components/partials/Pagination/PrevButton.astro';
+import NextButton from '@components/partials/Pagination/NextButton.astro';
+import SkipButton from '@components/partials/Pagination/SkipButton.astro';
+import PageButton from '@components/partials/Pagination/PageButton.astro';
+import { MAX_VISIBLE_PAGES } from '@src/config';
+
+interface Props {
+	length: number;
+	currentUrl: string;
+	firstUrl: string;
+	prevUrl?: string;
+	nextUrl?: string;
+	lastUrl: string;
+	currentPage: number;
+	class?: string;
+}
+
+const {
+	length,
+	currentUrl,
+	currentPage,
+	firstUrl,
+	prevUrl,
+	nextUrl,
+	lastUrl,
+	class: className,
+} = Astro.props;
+
+const fillPaginationListToShow = (length: number, maxVisiblePages: number) => {
+	const paginationListToShow = [];
+
+	// Always show the first page
+	paginationListToShow.push(1);
+
+	const start = Math.max(2, currentPage - Math.floor(maxVisiblePages / 2));
+	const end = Math.min(
+		length - 1,
+		currentPage + Math.floor(maxVisiblePages / 2),
+	);
+
+	if (start > 2) {
+		paginationListToShow.push('...');
+	}
+
+	for (let i = start; i <= end; i++) {
+		paginationListToShow.push(i);
+	}
+
+	if (end < length - 1) {
+		paginationListToShow.push('...');
+	}
+
+	// Always show the last page
+	if (length > 1) {
+		paginationListToShow.push(length);
+	}
+
+	return paginationListToShow;
+};
+
+const paginationListToShow = fillPaginationListToShow(
+	length,
+	MAX_VISIBLE_PAGES,
+);
+
+const getPageHref = (pageNum: number | string, pageIndex: number) => {
+	const pageHref = `${firstUrl}${pageNum === 1 ? '' : pageNum === '...' ? '/' + (pageIndex + 1) : '/' + pageNum}`;
+
+	return pageHref;
+};
+---
+
+{
+	length > 1 && (
+		<nav
+			aria-label='Blog posts navigation'
+			class:list={[className]}
+			aria-label='Pagination'
+		>
+			<ul class='flex flex-wrap gap-y-2 items-center -space-x-px leading-tight'>
+				{firstUrl !== currentUrl && (
+					<li>
+						<PrevButton url={prevUrl} />
+					</li>
+				)}
+
+				{paginationListToShow.map((num, i) =>
+					typeof num === 'number' ? (
+						<PageButton
+							pageNum={num}
+							isActive={num === currentPage}
+							pageHref={getPageHref(num, i)}
+						/>
+					) : (
+						<SkipButton pageNum={i + 1} maxPage={length} baseUrl={firstUrl} />
+					),
+				)}
+
+				{lastUrl !== currentUrl && (
+					<li>
+						<NextButton url={nextUrl} />
+					</li>
+				)}
+			</ul>
+		</nav>
+	)
+}

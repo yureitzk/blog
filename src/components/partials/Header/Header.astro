@@ -1,0 +1,185 @@
+---
+import ThemeSwitch from '@components/partials/ThemeSwitch.astro';
+import NavLink from '@components/partials/Header/NavLink.astro';
+import Search from 'astro-pagefind/components/Search';
+import { Icon } from 'astro-icon/components';
+
+const pathname = new URL(Astro.request.url).pathname;
+const currentPath = pathname.slice(1);
+
+interface Props {
+	class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<header class:list={['mx-auto overflow-y-auto max-h-[100vh]', className]}>
+	<div class='container mx-auto'>
+		<nav class='flex align-center justify-between flex-wrap py-3 md:py-4 md:py-6'>
+			<button
+				id='toggle-menu-btn'
+				type='button'
+				class='inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 cursor-pointer'
+				aria-controls='menu'
+				aria-expanded='false'
+			>
+				<span class='sr-only'>Open main menu</span>
+				<Icon name='burger' class='w-5 h-5' />
+			</button>
+
+			<div
+				id='menu'
+				class='hidden w-full md:flex md:w-auto order-last md:order-none shadow-lg md:shadow-none p-3 md:p-0 rounded-xl md:rounded-none items-center'
+			>
+				<ul
+					class='flex flex-col md:flex-row align-center gap-x-1 gap-y-2 md:gap-y-0'
+				>
+					<li>
+						<NavLink linkText={'Home'} linkPath={'/'} currentPath={currentPath} />
+					</li>
+					<li>
+						<NavLink
+							linkText={'About'}
+							linkPath={'/about'}
+							currentPath={currentPath}
+						/>
+					</li>
+					<li>
+						<NavLink
+							linkText={'Projects'}
+							linkPath={'/projects'}
+							currentPath={currentPath}
+						/>
+					</li>
+					<li>
+						<NavLink linkText={'Blog'} linkPath={'/blog'} currentPath={currentPath} />
+					</li>
+				</ul>
+			</div>
+
+			<div class='flex align-center gap-x-1'>
+				<button
+					id='searchBtn'
+					title='Search Posts'
+					class='p-2 dark:hocus:bg-slategray hocus:bg-silver transition-colors rounded-md cursor-pointer'
+				>
+					<Icon name='search' height='1.3rem' width='1.3rem' />
+				</button>
+				<ThemeSwitch
+					class='px-2 dark:hover:bg-slategray hover:bg-silver transition-colors rounded-md cursor-pointer'
+				/>
+			</div>
+
+			<div
+				id='modal'
+				tabindex='-1'
+				aria-hidden='true'
+				class='fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full backdrop-blur-xs'
+			>
+				<div class='relative w-full max-w-2xl h-fit mb-auto'>
+					<!-- Modal content -->
+					<div class='relative bg-white rounded-lg shadow-sm dark:bg-darkblack'>
+						<Search
+							id='search'
+							className='pagefind-ui'
+							uiOptions={{
+								showImages: false,
+								resetStyles: true,
+								translations: {
+									clear_search: '',
+								},
+							}}
+						/>
+						<div id='results'></div>
+						<script src='/pagefind/pagefind-ui.js' is:inline></script>
+					</div>
+				</div>
+			</div>
+
+			<script>
+				import { Modal } from 'flowbite';
+				import { Collapse } from 'flowbite';
+				import hotkeys from 'hotkeys-js';
+				import { hasFocus } from '@src/lib/helpers';
+
+				function initSearch() {
+					const $buttonElement: HTMLElement | null =
+						document.querySelector('#searchBtn');
+					const $modalElement: HTMLElement | null = document.querySelector('#modal');
+					const modalInput: HTMLElement | null = $modalElement
+						? $modalElement?.querySelector('input')
+						: null;
+
+					const modal = new Modal($modalElement);
+
+					const toggleModal = () => {
+						modal.toggle();
+						hasFocus(modalInput) ? modalInput?.blur() : modalInput?.focus();
+					};
+
+					hotkeys('ctrl+k', function (event, handler) {
+						event.preventDefault();
+						toggleModal();
+					});
+
+					if ($buttonElement) {
+						$buttonElement.addEventListener('click', () => {
+							toggleModal();
+						});
+					}
+				}
+
+				initSearch();
+
+				function navbarInit() {
+					const toggleBtn: HTMLInputElement | null =
+						document.querySelector('#toggle-menu-btn');
+					const menu: HTMLElement | null = document.querySelector('#menu');
+					const toc: HTMLElement | null =
+						document.querySelector('#table-of-contents');
+					const headerContainer: HTMLElement | null =
+						document.querySelector('header .container');
+					const mainContainer: HTMLElement | null =
+						document.querySelector('main div');
+
+					const moveTocToHeader = () => {
+						if (!headerContainer || !toc) return;
+						if (toc.parentElement === headerContainer) return;
+						headerContainer.appendChild(toc);
+					};
+
+					const moveTocToMain = () => {
+						if (mainContainer && toc) {
+							mainContainer.prepend(toc);
+						}
+					};
+
+					const options = {};
+					const instanceOptions = {
+						id: 'menu',
+						override: true,
+					};
+
+					const collapse = new Collapse(menu, toggleBtn, options, instanceOptions);
+
+					const mediaQuery = window.matchMedia('(min-width: 48rem)');
+
+					function handleScreenChange(e: MediaQueryListEvent | MediaQueryList) {
+						const matches =
+							'matches' in e
+								? (e as MediaQueryList).matches
+								: (e as MediaQueryListEvent).matches;
+						if (matches) moveTocToMain();
+						else moveTocToHeader();
+					}
+
+					mediaQuery.addEventListener('change', handleScreenChange);
+					handleScreenChange(mediaQuery);
+				}
+
+				navbarInit();
+			</script>
+		</nav>
+	</div>
+</header>

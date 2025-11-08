@@ -1,0 +1,27 @@
+---
+interface Props {
+	currentPath?: string;
+	linkPath: string;
+	linkText: string;
+	class?: string;
+}
+
+const { currentPath, linkPath, linkText, class: className } = Astro.props;
+
+const currentBasePath = currentPath
+	? currentPath.split('/').filter(Boolean)[0]
+	: linkPath === '/'
+		? ''
+		: null;
+---
+
+<a
+	class:list={[
+		'p-2 dark:hover:bg-slategray hover:bg-silver transition-colors rounded-md',
+		currentBasePath !== null && currentBasePath === linkPath.slice(1)
+			? 'font-semibold underline underline-offset-4 decoration-2 decoration-cornflowerblue md:decoration-transparent md:dark:decoration-transparent dark:decoration-hotpink'
+			: '',
+		className,
+	]}
+	href={`${linkPath}`}>{linkText}</a
+>

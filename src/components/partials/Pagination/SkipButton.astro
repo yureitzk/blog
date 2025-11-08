@@ -1,0 +1,128 @@
+---
+import { Icon } from 'astro-icon/components';
+
+interface Props {
+	pageNum: number;
+	maxPage: number;
+	baseUrl: string;
+}
+
+const { pageNum, baseUrl, maxPage } = Astro.props;
+---
+
+<div data-popover-target='popover-msg'>
+	<button
+		id='popover-form-btn'
+		class='flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-300 hover:text-gray-700 dark:bg-darkblack dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white'
+	>
+		...
+	</button>
+</div>
+
+<div
+	data-popover
+	id='popover-msg'
+	role='tooltip'
+	class='absolute z-10 invisible inline-block text-sm text-gray-700 transition-opacity duration-300 bg-white border border-gray-200 rounded-lg shadow-xs opacity-0 dark:bg-darkblack dark:border-gray-600 dark:text-gray-400'
+>
+	<div class='px-3 py-2'>
+		<p>Go to page</p>
+	</div>
+	<div data-popper-arrow></div>
+</div>
+
+<div
+	data-popover
+	id='popover-form'
+	role='tooltip'
+	class='absolute z-10 invisible inline-block text-sm text-gray-600 bg-white transition-opacity duration-300 border border-gray-300 rounded-lg opacity-0 dark:bg-darkblack dark:border-gray-600 dark:text-gray-400'
+>
+	<div
+		class='px-3 py-2 bg-gray-100 border-b border-gray-200 rounded-t-lg dark:border-gray-600 dark:bg-gray-700'
+	>
+		<h3 class='font-semibold text-gray-900 dark:text-white'>Go to page</h3>
+	</div>
+	<div class='px-3 py-2'>
+		<form class='flex gap-x-2' id='page-form' data-base-url={baseUrl}>
+			<div class='relative flex items-center max-w-[8rem]'>
+				<button
+					type='button'
+					id='decrement-button'
+					data-input-counter-decrement='pagenumber-input'
+					class='bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600 hover:bg-gray-200 border border-gray-300 rounded-s-lg p-3 h-9 focus:ring-gray-100 dark:focus:ring-gray-700 focus:ring-2 focus:outline-hidden'
+				>
+					<Icon
+						name='minus'
+						height='.7rem'
+						width='.7rem'
+						class='text-gray-900 dark:text-white'
+					/>
+				</button>
+				<input
+					type='text'
+					id='pagenumber-input'
+					data-input-counter
+					aria-describedby='helper-text-explanation'
+					value={pageNum}
+					data-input-counter-min={1}
+					data-input-counter-max={maxPage}
+					class='bg-gray-50 border-x-0 border-gray-300 h-9 text-center text-gray-900 text-sm focus:ring-blue-500 focus:border-blue-500 block w-full py-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+					required
+				/>
+				<button
+					type='button'
+					id='increment-button'
+					data-input-counter-increment='pagenumber-input'
+					class='bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600 hover:bg-gray-200 border border-gray-300 rounded-e-lg p-3 h-9 focus:ring-gray-100 dark:focus:ring-gray-700 focus:ring-2 focus:outline-hidden'
+				>
+					<Icon
+						name='plus'
+						height='.7rem'
+						width='.7rem'
+						class='text-gray-900 dark:text-white'
+					/>
+				</button>
+			</div>
+			<button
+				class='dark:hocus:bg-slategray p-2 px-3 hocus:bg-silver text-black dark:text-white transition-colors rounded-md'
+				type='submit'>Go</button
+			>
+		</form>
+	</div>
+	<div data-popper-arrow></div>
+</div>
+
+<script>
+	const form: HTMLElement | null = document.querySelector('#page-form');
+	const baseUrl = form?.dataset.baseUrl;
+	const pageNumberInput: HTMLInputElement | null =
+		document.querySelector('#pagenumber-input');
+	if (pageNumberInput && baseUrl) {
+		form?.addEventListener('submit', (e) => {
+			e.preventDefault();
+			const pageNumber =
+				pageNumberInput.value === '1' ? '' : pageNumberInput.value;
+			const newPathname = `${baseUrl}/${pageNumber}`;
+			window.location.pathname = newPathname;
+		});
+	}
+
+	import { Popover } from 'flowbite';
+	import type { PopoverTriggerType } from 'flowbite';
+
+	const $triggerEl = document.getElementById('popover-form-btn');
+	const $targetEl = document.getElementById('popover-form');
+
+	const instanceOptions = {
+		id: 'popover-form',
+		override: false,
+	};
+	const options = {
+		triggerType: 'none' as PopoverTriggerType,
+	};
+	const popover = new Popover($targetEl, $triggerEl, options, instanceOptions);
+
+	$triggerEl?.addEventListener('click', () => {
+		popover.toggle();
+	});
+</script>

@@ -1,0 +1,51 @@
+---
+import '@fontsource-variable/inter';
+import '@fontsource-variable/fira-code';
+import Head from '@components/partials/Head.astro';
+import Header from '@components/partials/Header/Header.astro';
+import ScrollToTop from '@components/partials/ScrollToTop.astro';
+import Footer from '@components/partials/Footer.astro';
+import '@src/styles/global.css';
+import type { Post } from '@src/types/Post';
+
+interface Props {
+	title?: string;
+	description?: string;
+	keywords?: string[];
+	includeFooter?: boolean;
+	class?: string;
+	rest?: string[];
+	post?: Post;
+}
+
+const {
+	title,
+	description,
+	keywords,
+	post,
+	includeFooter = true,
+	class: className,
+	...rest
+} = Astro.props;
+---
+
+<html lang='en'>
+	<Head title={title} description={description} keywords={keywords} post={post} />
+	<body class='font-inter'>
+		<Header class='sticky top-0 z-20 gap-x-3 md:mb-2' />
+
+		<div class='container mx-auto pb-4 min-h-screen flex flex-col'>
+			<main class:list={['mb-8 grow flex flex-col', className]} {...rest}>
+				<slot />
+			</main>
+
+			{
+				includeFooter && (
+					<Footer class='mx-auto w-full mt-auto rounded-xl py-3 px-2' />
+				)
+			}
+
+			<ScrollToTop />
+		</div>
+	</body>
+</html>

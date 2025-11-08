@@ -1,0 +1,70 @@
+---
+import { Icon } from 'astro-icon/components';
+
+interface Props {
+	url: string;
+	description: string;
+	iconName: string;
+	clipboard?: boolean;
+}
+
+const { url, description, iconName, clipboard } = Astro.props;
+---
+
+<a
+	role={clipboard ? 'button' : 'link'}
+	class=`u-url block p-1 dark:hocus:bg-slategray hocus:bg-silver hocus:opacity-75 transition-opacity transition-colors rounded-md ${clipboard ? 'social-clipboard' : '' }`
+
+	{...(clipboard ? {
+		'data-text': url
+	} : {
+		href: url,
+		rel: 'noopener noreferrer me',
+		target: '_blank',
+	})}
+>
+	<span class='sr-only'>{description}</span>
+	<div class='relative h-5 w-5'>
+		<Icon class='absolute h-full w-full link-icon' name={iconName} />
+
+		{clipboard && (
+			<Icon class='absolute h-full w-full checkmark-icon hidden' name={'mingcute:check-fill'} />
+		)}
+	</div>
+</a>
+
+
+<script>
+
+const links: HTMLAnchorElement[] = Array.from(document.querySelectorAll('a.social-clipboard'));
+links?.forEach((link) => {
+	link?.addEventListener('click', (event) => {
+		event.preventDefault();
+		copyText(link);
+	});
+});
+
+async function copyText(link: HTMLAnchorElement,) {
+	const text = link?.dataset?.text;
+	let label: HTMLElement | null = link?.querySelector('span.sr-only');
+	let linkIcon: HTMLElement | null = link?.querySelector('.link-icon');
+	let checkmarkIcon: HTMLElement | null = link?.querySelector('.checkmark-icon');
+
+	if (text && label) {
+		await navigator.clipboard?.writeText(text)
+
+		const oldLabelText = label.innerHTML;
+		const hiddenClass = 'hidden';
+
+		linkIcon?.classList.add(hiddenClass);
+		checkmarkIcon?.classList.remove(hiddenClass);
+		label.innerText = 'Copied';
+
+		setTimeout(() => {
+			label.innerText = oldLabelText;
+			linkIcon?.classList.remove(hiddenClass);
+			checkmarkIcon?.classList.add(hiddenClass);
+		}, 700);
+	};
+}
+</script>

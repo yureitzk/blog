@@ -1,0 +1,70 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import Author from '@components/partials/Author.astro';
+import FormattedDate from '@components/partials/FormattedDate.astro';
+import ReadingTime from '@components/partials/ReadingTime.astro';
+import PostTags from '@components/partials/PostTags.astro';
+
+type Props = {
+	title: string;
+	tags: string[];
+	cover: ImageMetadata;
+	publishedDate: Date;
+	lastModifiedDate?: Date;
+	slug: string;
+	body: string;
+	class: string;
+}
+
+const { title, tags, cover, publishedDate, slug, body, lastModifiedDate, class: className } = Astro.props;
+const postUrl = '/blog/' + slug;
+---
+
+<article
+	class:list={[
+		'flex flex-col rounded-xl transition-transform transition-shadow transition-colors duration-300 ease hover:z-30 hover:shadow-lg md:shadow-xl md:hover:shadow-2xl md:hover:scale-[1.04] dark:bg-darkslategray bg-white',
+		className,
+	]}
+>
+	<a href={postUrl} aria-label={title}>
+		<Image
+			loading='lazy'
+			src={cover}
+			alt={title}
+			widths={[360, 640, 768, 1024, 1280, 1568]}
+			sizes='(min-width: 640px) 50vw, (min-width: 1024px) 33vw, 100vw'
+			class='rounded-t-xl object-cover'
+		/>
+	</a>
+
+	<Author class='hidden' />
+
+	<section class='px-6 py-4'>
+		<div class='flex gap-x-3 mb-2'>
+			<span class='group swap'>
+				{
+					lastModifiedDate && (
+						<FormattedDate
+							date={lastModifiedDate}
+							class='dt-updated opacity-0 group-hover:opacity-100 transition-opacity'
+						/>
+					)
+				}
+				<FormattedDate
+					date={publishedDate}
+					class=`dt-published ${lastModifiedDate ? 'group-hover:opacity-0 transition-opacity' : ''}`
+				/>
+			</span>
+			<ReadingTime class='opacity-65' body={body} />
+		</div>
+
+		<a class='w-fit line-clamp-3' href={postUrl}>
+			<h2 class='font-bold mb-4'>
+				{title}
+			</h2>
+		</a>
+
+		<PostTags tags={tags} class='gap-2' />
+	</section>
+</article>

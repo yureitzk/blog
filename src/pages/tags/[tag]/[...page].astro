@@ -1,0 +1,70 @@
+---
+import { getPostsTags, getPostsByTag } from '@lib/utils';
+import type { Post } from '@src/types/Post';
+import type { GetStaticPaths } from 'astro';
+import Layout from '@components/layouts/Layout.astro';
+import Tags from '@components/partials/Tags.astro';
+import PostCardWithImage from '@components/partials/PostCardWithImage.astro';
+import { PAGE_SIZE } from '@src/config';
+import Pagination from '@components/partials/Pagination/Pagination.astro';
+import { slug as slugify } from 'github-slugger';
+
+export const getStaticPaths = (async ({ paginate }) => {
+	const routes = [];
+	const tags = await getPostsTags();
+
+	for (const { value } of tags) {
+		const posts = await getPostsByTag(value);
+		const route = paginate(posts, {
+			params: { tag: slugify(value) },
+			props: { title: value },
+			pageSize: PAGE_SIZE,
+		});
+
+		routes.push(...route);
+	}
+	return routes;
+}) satisfies GetStaticPaths;
+
+const { tag } = Astro.params;
+const { page } = Astro.props;
+const posts = page.data;
+
+const pathname = new URL(Astro.request.url).pathname.split('/');
+const firstPath = pathname[1];
+const secondPath = pathname[2];
+---
+
+<Layout title='Posts'>
+	<Tags activeTag={tag} class='mb-4' />
+
+	<ul class='mb-4 grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
+		{
+			posts.map((post: Post) => (
+				<li>
+					<PostCardWithImage
+						title={post.data.title}
+						tags={post.data.tags}
+						slug={post.slug}
+						cover={post.data.cover}
+						publishedDate={post.data.date}
+						lastModifiedDate={post.data.lastModifiedDate}
+						body={post.body}
+						class={'h-full'}
+					/>
+				</li>
+			))
+		}
+	</ul>
+
+	<Pagination
+		length={page.lastPage}
+		currentUrl={page.url.current}
+		currentPage={page.currentPage}
+		firstUrl={`/${firstPath}/${secondPath}`}
+		prevUrl={page.url.prev}
+		nextUrl={page.url.next}
+		lastUrl={`/${firstPath}/${secondPath}/${page.lastPage}`}
+		class='mx-auto w-fit'
+	/>
+</Layout>

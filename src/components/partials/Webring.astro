@@ -1,0 +1,31 @@
+---
+import { Icon } from 'astro-icon/components';
+
+interface Props {
+	previousUrl: string;
+	nextUrl: string;
+	class?: string;
+}
+
+const { previousUrl, nextUrl, class: className } = Astro.props;
+---
+
+<div class:list={['flex items-center gap-1', className]}>
+	<a
+		href={previousUrl}
+		rel='nofollow'
+		class='p-1 rounded-lg dark:hocus:bg-slategray hocus:bg-silver hocus:opacity-75 transition-opacity transition-colors'
+	>
+		<span class='sr-only'>Go to previous site</span>
+		<Icon name='mingcute:arrows-left-line' class='h-5 w-5' />
+	</a>
+	<span> Webring </span>
+	<a
+		href={nextUrl}
+		rel='nofollow'
+		class='p-1 rounded-lg dark:hocus:bg-slategray hocus:bg-silver hocus:opacity-75 transition-opacity transition-colors'
+	>
+		<span class='sr-only'>Go to next site</span>
+		<Icon name='mingcute:arrows-right-line' class='h-5 w-5' />
+	</a>
+</div>

@@ -1,0 +1,93 @@
+<script>
+	import { PUBLIC_REMARK_URL, PUBLIC_REMARK_SITE } from '@src/config';
+	import { getTheme } from '@src/lib/helpers';
+
+	const REMARK_LIGHT_THEME = 'light';
+	const REMARK_DARK_THEME = 'dark';
+
+	function getRemarkTheme() {
+		const theme = getTheme();
+		const remarkTheme =
+			theme === 'light' ? REMARK_LIGHT_THEME : REMARK_DARK_THEME;
+
+		return remarkTheme;
+	}
+
+	var remark_config = {
+		host: PUBLIC_REMARK_URL,
+		site_id: PUBLIC_REMARK_SITE,
+		components: ['embed'],
+		theme: getRemarkTheme(),
+		show_email_subscription: true,
+		show_rss_subscription: false,
+		no_footer: true,
+		__colors__: {},
+	};
+
+	window.remark_config = remark_config;
+
+	function createRemark42Script(components: string[], doc: Document) {
+		for (let i = 0; i < components.length; i++) {
+			let scriptEl: HTMLScriptElement = doc.createElement('script');
+			let ext = '.js';
+			let headOrBodyEl = doc.head || doc.body;
+
+			if ('noModule' in scriptEl && !scriptEl.noModule) {
+				scriptEl.type = 'module';
+				ext = '.mjs';
+			} else {
+				scriptEl.defer = true;
+			}
+
+			scriptEl.src = `${window.remark_config.host}/web/${components[i]}${ext}`;
+			headOrBodyEl.appendChild(scriptEl);
+		}
+	}
+
+	function lazyLoadRemark() {
+		const options = {
+			rootMargin: '0px',
+			scrollMargin: '0px',
+			threshold: 1.0,
+		};
+
+		const callback = (
+			entries: IntersectionObserverEntry[],
+			observer: IntersectionObserver,
+		) => {
+			entries.forEach((entry) => {
+				if (entry.isIntersecting && 'remark_config' in window) {
+					createRemark42Script(
+						window.remark_config.components || ['embed'],
+						document,
+					);
+					observer.disconnect();
+				}
+			});
+		};
+
+		const observer = new IntersectionObserver(callback, options);
+		const target = document.querySelector('#remark42');
+		if (target) observer.observe(target);
+	}
+
+	lazyLoadRemark();
+
+	const setRemarkTheme = () => {
+		const remarkTheme = getRemarkTheme();
+
+		if (window['REMARK42']) {
+			window.REMARK42.changeTheme(remarkTheme);
+		} else if (window.remark_config) {
+			window.remark_config.theme = getRemarkTheme();
+		}
+	};
+
+	const themeSwitcher = document.querySelector('#themeToggle');
+	if (themeSwitcher) {
+		themeSwitcher.addEventListener('themeToggle', setRemarkTheme);
+	}
+</script>
+
+<section id='remark42'></section>
+<noscript>Please enable JavaScript to view the comments section.</noscript>

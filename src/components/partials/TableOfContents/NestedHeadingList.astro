@@ -1,0 +1,38 @@
+---
+import type { HeadingWithSubheadings } from '@src/types/Headings';
+
+interface Props {
+	headings: HeadingWithSubheadings[];
+	class?: string;
+	rest?: string[];
+}
+const { headings, class: className, ...rest } = Astro.props;
+
+
+function getPaddingBasedOnDepth(depth: number) {
+    switch (depth) {
+        case 1:
+            return 'pl-2';
+        case 2:
+            return 'pl-6';
+        case 3:
+            return 'pl-10';
+        default:
+            return 'pl-0';
+    }
+}
+
+---
+
+<ol class:list={[className]} {...rest}>
+	{
+		headings.map((h: HeadingWithSubheadings) => (
+			<li>
+				<a class=`toc-item transition-colors md:border-s-2 md:border-gray-300 md:dark:border-gray-700 break-words py-1 block hover:text-gray-500 hover:text-gray-500 hover:border-cornflowerblue dark:hover:border-hotpink dark:hover:text-gray-400 ${getPaddingBasedOnDepth(h.depth)}` href={`#${h.slug}`}>
+					{h.text.endsWith('#') ? h.text.slice(0, -1) : h.text}
+				</a>
+				{h.subheadings.length > 0 && <Astro.self headings={h.subheadings as HeadingWithSubheadings[]} />}
+			</li>
+		))
+	}
+</ol>
