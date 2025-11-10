@@ -28,7 +28,7 @@ function getPaddingBasedOnDepth(depth: number) {
 	{
 		headings.map((h: HeadingWithSubheadings) => (
 			<li>
-				<a class=`toc-item transition-colors md:border-s-2 md:border-gray-300 md:dark:border-gray-700 break-words py-1 block hover:text-gray-500 hover:text-gray-500 hover:border-cornflowerblue dark:hover:border-hotpink dark:hover:text-gray-400 ${getPaddingBasedOnDepth(h.depth)}` href={`#${h.slug}`}>
+				<a class=`toc-item w-fit transition-colors md:border-s-2 md:border-gray-300 md:dark:border-gray-700 break-words py-1 block hover:text-gray-500 hover:text-gray-500 hover:border-cornflowerblue dark:hover:border-hotpink dark:hover:text-gray-400 ${getPaddingBasedOnDepth(h.depth)}` href={`#${h.slug}`}>
 					{h.text.endsWith('#') ? h.text.slice(0, -1) : h.text}
 				</a>
 				{h.subheadings.length > 0 && <Astro.self headings={h.subheadings as HeadingWithSubheadings[]} />}
