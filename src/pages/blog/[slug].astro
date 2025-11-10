@@ -107,13 +107,15 @@ const { Content, headings } = await post.render();
 					<Content components={{ img: ArticleImage }} />
 				</div>
 
-				<hr class='my-6 border-dashed' />
+				<PostTags tags={post.data.tags} class='mt-10 mb-6 gap-3 not-prose' />
 
-				<PostTags tags={post.data.tags} class='mb-5 gap-3' />
+				<RelatedPosts tags={post.data.tags} slug={post.slug} class='mb-4 not-prose' />
+
+				<hr class='mb-10 border-dashed not-prose' />
+
+				<h2 class="not-prose text-2xl font-bold dark:text-white text-darkblack mb-4">Comments</h2>
 
 				<Comments />
-
-				<RelatedPosts tags={post.data.tags} slug={post.slug} />
 			</article>
 			<Footer class='mx-auto w-full mt-auto rounded-xl' />
 		</div>

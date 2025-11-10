@@ -7,9 +7,10 @@ import RelatedPost from '@components/partials/RelatedPost.astro';
 interface Props {
 	tags: string[];
 	slug: string;
+	class?: string;
 }
 
-const { slug, tags } = Astro.props;
+const { slug, tags, class: className } = Astro.props;
 const allPosts = await getAllPosts();
 
 const posts = allPosts
@@ -37,8 +38,8 @@ const posts = allPosts
 
 {
 	posts.length > 0 && (
-		<div>
-			<h2 class='text-left !text-xl'>You might also like...</h2>
+		<div class:list={[className]}>
+			<h2 class='text-left text-xl font-bold text-darkblack mb-4 dark:text-white'>You might also like...</h2>
 			{posts.map((post: Post, i: number) => (
 				<RelatedPost
 					post={post}
