@@ -4,6 +4,7 @@ import ProjectCard from '@components/partials/ProjectCard.astro';
 
 import isaacFlashSaveEditorImage from '@assets/img/thumbnails/isaac-flash-save-editor.png';
 import lodEndModeImage from '@assets/img/thumbnails/lowendmod-extension.png';
+import humanFirstSearchImage from '@assets/img/thumbnails/human-first-search.png';
 ---
 
 <Layout
@@ -24,6 +25,13 @@ import lodEndModeImage from '@assets/img/thumbnails/lowendmod-extension.png';
 		tags={['TypeScript', 'CLI']}
 		link={'https://github.com/yureitzk/tboi-flash-save-editor'}
 		img={isaacFlashSaveEditorImage}
+	/>
+	<ProjectCard
+		title={'Human-First Search'}
+		description={'A browser extension that filters out AI-generated content from search engines.'}
+		tags={['TypeScript', 'Browser Extension', 'Svelte']}
+		link={'https://github.com/yureitzk/human-first-search'}
+		img={humanFirstSearchImage}
 	/>
 
 </Layout>
