@@ -9,7 +9,6 @@ import {
 	TITLE,
 	DESCRIPTION,
 	KEYWORDS,
-	TWITTER_USERNAME,
 	AUTHOR,
 	GITHUB_URL,
 	PUBLIC_REMARK_URL
@@ -80,15 +79,6 @@ if (post && post.data.cover) {
 			optional: {
 				description: `${pageDescription}`,
 			},
-		}}
-		TWITTER_USERNAME
-		&&
-		(
-		twitter={{
-			creator: TWITTER_USERNAME,
-			title: title ? `${title} - ${TITLE}` : TITLE,
-			description: `${pageDescription}`,
-			image: imageUrl,
 		}}
 		)
 		canonical={currentUrl}

@@ -13,8 +13,6 @@ export const STATUS = '🍵';
 export const NOTES = 'veteran grass-toucher';
 
 export const PAGE_URL = 'https://yureitzk.com';
-export const TWITTER_USERNAME = '@yureitzk';
-export const TWITTER_URL = 'https://twitter.com/yureitzk';
 export const MATRIX_URL = 'https://matrix.to/#/@yureitzk:unredacted.org';
 export const TELEGRAM_URL = 'https://t.me/yureitzk';
 export const BLUESKY_URL = 'https://bsky.app/profile/yureitzk.com';
