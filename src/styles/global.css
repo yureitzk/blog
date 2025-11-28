@@ -188,8 +188,12 @@ html.dark .moon {
 	color: var(--shiki-light) !important;
 }
 
-[data-show-ps1='true'] .code-wrapper code > span:first-child::before {
+[data-show-ps1='true'] .code-wrapper code > span[data-line]::before {
 	content: '$ ';
+}
+
+[data-show-root-ps1='true'] .code-wrapper code > span[data-line]::before {
+	content: '# ';
 }
 
 [data-rehype-pretty-code-figure] pre {
