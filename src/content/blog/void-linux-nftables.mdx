@@ -1,0 +1,180 @@
+---
+title: "Using nftables on Desktop Void Linux"
+date: 2025-11-26
+description: A brief tutorial on how to setup nftables on Void Linux.
+tags: [nftables, linux, void linux]
+keywords: [linux, networking, nftables, ufw, firewall, void linux]
+cover: '@assets/img/thumbnails/nftables-void-linux.png'
+---
+
+## Why nftables?
+
+When it comes to firewalls on Linux, especially for long-term use, I've found myself increasingly favoring `nftables`. It's easy to write, it's supported natively by the Linux kernel and it's portable. You can tell I like it quite a lot. The fact it's so easy to write makes things like `ufw` completely obsolete, since you can don't need any kind of front-end layer.
+
+Here's how I configured `nftables` on Void Linux, mostly for a desktop/workstation system.
+
+
+## Installation
+
+### Packages
+
+Install the packages:
+
+```sh show-root-ps1
+xbps-install nftables runit-nftables
+```
+
+Enable the runit service:
+
+```sh show-root-ps1
+ln -s /etc/sv/nftables /var/service/nftables
+```
+
+Now you can load the rules with this command:
+
+```sh show-root-ps1
+sv up nftables
+```
+
+And flush them using:
+
+
+```sh show-root-ps1
+sv disable nftables
+```
+
+If you want to maintain compatibility for programs that only support `iptables`, replace it with `iptables-nft`:
+
+```sh show-root-ps1
+xbps-alternatives -g iptables -s iptables-nft
+```
+
+## Configuration
+
+`nftables` looks for rules in `/etc/nftables.conf`. Here's the example configuration taken from [Gentoo wiki](https://wiki.gentoo.org/wiki/Nftables/Examples#Typical_workstation_.28separate_IPv4_and_IPv6.29):
+
+```conf title="/etc/nftables.conf"
+#!/sbin/nft -f
+
+table inet firewall
+delete table inet firewall
+
+table inet firewall {
+    chain INPUT {
+        type filter hook input priority filter; policy drop;
+
+		ct state invalid counter drop comment "early drop of invalid packets"
+		ct state {established, related} counter accept comment "accept all connections related to connections made by us"
+
+		iif lo accept comment "accept loopback"
+
+		iif != lo ip daddr 127.0.0.1/8 counter drop comment "drop connections to loopback not coming from loopback"
+		iif != lo ip6 daddr ::1/128 counter drop comment "drop connections to loopback not coming from loopback"
+
+		ip protocol icmp counter accept comment "accept all ICMP types"
+		meta l4proto ipv6-icmp counter accept comment "accept all ICMP types"
+		udp dport mdns ip daddr 224.0.0.251 counter accept comment "IPv4 mDNS"
+		udp dport mdns ip6 daddr ff02::fb counter accept comment "IPv6 mDNS"
+
+		counter comment "count dropped packets"
+
+    }
+
+	chain forward {
+		type filter hook forward priority 0; policy drop;
+		counter comment "count dropped packets"
+	}
+
+	chain output {
+        type filter hook output priority 0; policy accept;
+		counter comment "count accepted packets"
+	}
+}
+```
+
+I won't dive too deep to explain how it works, I'll simply show how to do basics things in this configuration.
+
+For instance, to open a certain port, use the following syntax:
+
+```conf
+tcp dport 3000 accept comment "Allow connections to TCP port 3000"
+udp dport 3000 accept comment "Allow connections to UDP port 3000"
+```
+
+So your `INPUT` chain will look like this:
+
+```conf
+chain INPUT {
+    type filter hook input priority filter; policy drop;
+
+    ct state invalid counter drop comment "early drop of invalid packets"
+    ct state {established, related} counter accept comment "accept all connections related to connections made by us"
+
+    iif lo accept comment "accept loopback"
+
+    iif != lo ip daddr 127.0.0.1/8 counter drop comment "drop connections to loopback not coming from loopback"
+    iif != lo ip6 daddr ::1/128 counter drop comment "drop connections to loopback not coming from loopback"
+
+    ip protocol icmp counter accept comment "accept all ICMP types"
+    meta l4proto ipv6-icmp counter accept comment "accept all ICMP types"
+    udp dport mdns ip daddr 224.0.0.251 counter accept comment "IPv4 mDNS"
+    udp dport mdns ip6 daddr ff02::fb counter accept comment "IPv6 mDNS"
+
+    tcp dport 3000 accept comment "Allow connections to TCP port 3000"
+    udp dport 3000 accept comment "Allow connections to UDP port 3000"
+
+    counter comment "count dropped packets"
+
+}
+```
+
+To ensure the rules are applied, check the output of this command:
+
+```show-root-ps1
+nft list ruleset
+```
+
+### Bridge interfaces
+
+Programs like docker or libvirt rely on bridge interfaces to have a network connection. If you use the provided nftables configuration, you may notice that your VMs or containers don't have a network access. That's because our firewall disallows this kind of traffic in the `forward` chain.
+
+Here's an example solution for cases when you want to allow forwarding on a certain network interface, or subnet:
+
+```conf
+define LIBVIRT_INTERFACE = "virbr0"
+define DOCKER_IP = { 172.240.0.0/16 }
+
+chain forward {
+    type filter hook forward priority 0; policy drop;
+
+    iifname $LIBVIRT_INTERFACE accept comment "accept incoming traffic on libvirt interface"
+    oifname $LIBVIRT_INTERFACE accept comment "accept outgoing traffic on libvirt interface"
+    ip saddr $DOCKER_IP accept comment "accept incoming traffic from docker IP address"
+    ip daddr $DOCKER_IP accept comment "accept outgoing traffic to docker IP address"
+
+    counter comment "count dropped packets"
+}
+```
+
+And allow forwarding using `sysctl` command:
+
+```sh show-root-ps1
+sysctl -w net.ipv4.ip_forward=1
+sysctl -w net.ipv6.conf.default.forwarding=1
+```
+
+To make these changes permanent, add the following lines to `/etc/sysctl.conf`:
+
+```conf title="/etc/sysctl.conf"
+net.ipv4.ip_forward = 1
+net.ipv6.conf.default.forwarding = 1
+```
+
+Also, If you use `libvirt`, you can change `firewall_backend` to `nftables` in `/etc/libvirt/network.conf`.
+
+*Note*: If you flush your nftables rules, you may need to restart the libvirt or Docker services so they can recreate their network tables.
+
+## My experience
+
+So far, I've been using this setup for quite some time and it seems to work pretty well.
+
