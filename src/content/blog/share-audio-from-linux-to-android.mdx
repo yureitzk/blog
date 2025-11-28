@@ -23,9 +23,9 @@ Download and install Audio Share on both your Linux host ([GitHub](https://githu
 
 Open the fault Audio Share port `65530` for TCP and UDP protocols using commands like these:
 
-```sh
-$ sudo ufw allow 65530/tcp comment 'Audio Share'
-$ sudo ufw allow 65530/udp comment 'Audio Share'
+```sh show-root-ps1
+ufw allow 65530/tcp comment 'Audio Share'
+ufw allow 65530/udp comment 'Audio Share'
 ```
 
 ### (Optional) Create a Dummy Audio Endpoint
