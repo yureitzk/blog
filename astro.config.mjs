@@ -86,7 +86,8 @@ export default defineConfig({
 			manifest: manifestObj,
 			workbox: {
 				navigateFallback: '/404',
-				globPatterns: ['**/*.{css,js,html,svg,png,ico,txt,xml}'],
+				globPatterns: ['**/*.{css,js,html,svg,png,webp,ico,woff2,txt,xml}'],
+				skipWaiting: true,
 			},
 			experimental: {
 				directoryAndTrailingSlashHandler: true,
