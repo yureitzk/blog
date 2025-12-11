@@ -257,6 +257,7 @@ const { Content, headings } = await post.render();
 				);
 				wrapButton?.addEventListener('click', () => {
 					codeBlockPre.classList.toggle('whitespace-pre-wrap');
+					codeBlockPre.classList.toggle('wrap-anywhere');
 				});
 
 				window.addEventListener('resize', () => {
