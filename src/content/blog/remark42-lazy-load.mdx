@@ -1,0 +1,117 @@
+---
+title: "Lazy Load Remark42 widget"
+date: 2025-12-11
+description: "How I slightly optimized page load by lazy loading the Remark42 comments widget."
+tags: [astro, javascript]
+keywords: [remark42, javascript, lazy loading, remark42 optimization]
+cover: '@assets/img/thumbnails/remark42-lazy-load.png'
+---
+
+## Preface
+
+Not a long time ago I started using [Remark42](https://github.com/umputun/remark42), and when I was integrating it into my website, I noticed a small but noticeable impact on page loading time due to the JavaScript code on front-end. Not as bad as [Giscus](https://giscus.app) or Disqus would make, but still noticeable enough for me.
+
+In this post, I'll explain how I optimized it and made the JavaScript load lazily, ensuring faster page loads for my readers.
+
+## Basics
+
+For server-side configuration details, refer to the [official docs](https://remark42.com/docs/configuration/parameters/). Here I'll go over the front-end part only.
+
+So, to display remark42 comments on your site, you only need to include this JavaScript code:
+
+```html
+<script>
+	var remark_config = {
+		host: "https://demo.remark42.com",
+		site_id: "remark",
+	}
+</script>
+<script>!function(e,n){for(var o=0;o<e.length;o++){var r=n.createElement("script"),c=".js",d=n.head||n.body;"noModule"in r?(r.type="module",c=".mjs"):r.async=!0,r.defer=!0,r.src=remark_config.host+"/web/"+e[o]+c,d.appendChild(r)}}(remark_config.components||["embed"],document);</script>
+```
+
+Don't forget to replace `host` and `site_id` with your own configuration values.
+
+## The problem
+
+The problem with this approach is that it's an additional external script, which in my case, is totally optional for website's functionality, since the comment section is in the end of the post, and not every user will even see it, but every user will notice an additional request to another server to fetch the script and render this component.
+
+## The solution
+
+I used a simple TypeScript code that dynamically builds `<script>` tags for remark42 front-end code:
+
+```js
+var remark_config = {
+    host: PUBLIC_REMARK_URL,
+    site_id: PUBLIC_REMARK_SITE,
+    components: ['embed'],
+    theme: 'light',
+    show_email_subscription: true,
+    show_rss_subscription: true,
+    no_footer: true,
+};
+
+window.remark_config = remark_config;
+
+function createRemark42Script(components: string[], doc: Document) {
+    for (let i = 0; i < components.length; i++) {
+        let scriptEl: HTMLScriptElement = doc.createElement('script');
+        let ext = '.js';
+        let headOrBodyEl = doc.head || doc.body;
+
+        if ('noModule' in scriptEl && !scriptEl.noModule) {
+            scriptEl.type = 'module';
+            ext = '.mjs';
+        } else {
+            scriptEl.defer = true;
+        }
+
+        scriptEl.src = `${window.remark_config.host}/web/${components[i]}${ext}`;
+        headOrBodyEl.appendChild(scriptEl);
+    }
+}
+
+function lazyLoadRemark() {
+    const options = {
+        rootMargin: '0px',
+        scrollMargin: '0px',
+        threshold: 1.0,
+    };
+
+    const callback = (
+        entries: IntersectionObserverEntry[],
+        observer: IntersectionObserver,
+    ) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting && 'remark_config' in window) {
+                createRemark42Script(
+                    window.remark_config.components || ['embed'],
+                    document,
+                );
+                observer.disconnect();
+            }
+        });
+    };
+
+    const observer = new IntersectionObserver(callback, options);
+    const target = document.querySelector('#remark42');
+    if (target) observer.observe(target);
+}
+```
+
+The most important part here is [IntersectionObserver](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) call. It checks whether the `#remark42` element is visible to the user or not. Once it does, it'll add remark42 to the page and disconnect the observer.
+
+### A Small addition
+
+We can further optimize this by adding a special link in the `<head>` of the page:
+
+```html
+<link rel='dns-prefetch' href=PUBLIC_REMARK_URL />
+```
+
+[dns-prefetch](https://developer.mozilla.org/en-US/docs/Web/Performance/Guides/dns-prefetch) deals with DNS resolution, and in this case it makes a DNS request to the remark42 server when user opened the page. This means when the `<script>` tag fetches the JavaScript code, no additional DNS requests will be made, as the browser already knows which domain name to resolve.
+
+
+## Conclusion
+
+I think there are more ways to optimize this even further. Like, add the `<script>` when the user *is about* to see the comment section, but I'm somewhat satisfied with the current approach. Also, big thanks to the remark42 team - the widget is pretty lightweight and it's not that critical if you don't lazy load it.
+
