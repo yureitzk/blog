@@ -109,11 +109,19 @@ const { Content, headings } = await post.render();
 
 				<PostTags tags={post.data.tags} class='mt-10 mb-6 gap-3 not-prose' />
 
-				<RelatedPosts tags={post.data.tags} slug={post.slug} class='mb-4 not-prose' />
+				<RelatedPosts
+					tags={post.data.tags}
+					slug={post.slug}
+					class='mb-4 not-prose'
+				/>
 
 				<hr class='mb-10 border-dashed not-prose' />
 
-				<h2 class="not-prose text-2xl font-bold dark:text-white text-darkblack mb-4">Comments</h2>
+				<h2
+					class='not-prose text-2xl font-bold dark:text-white text-darkblack mb-4'
+				>
+					Comments
+				</h2>
 
 				<Comments />
 			</article>
@@ -236,72 +244,112 @@ const { Content, headings } = await post.render();
 	</script>
 
 	<script>
-		import { detectOveflow } from '@src/lib/helpers';
+		import { detectOveflow, windowDebounce as debounce } from '@src/lib/helpers';
 
-		let codeBlocks: HTMLElement[] = Array.from(
-			document.querySelectorAll('[data-rehype-pretty-code-figure]'),
-		);
+		const DEBOUNCE_DELAY = 200;
+		const COPY_FEEDBACK_DURATION = 700;
 
-		for (let codeBlock of codeBlocks) {
-			const wrapper: HTMLElement | null =
-				codeBlock?.querySelector('.code-wrapper');
-			const codeBlockPre: HTMLElement | null = codeBlock?.querySelector('pre');
+		function initializeCodeBlocks() {
+			const codeBlocks = document.querySelectorAll(
+				'[data-rehype-pretty-code-figure]',
+			);
 
-			if (wrapper && codeBlockPre) {
-				let resizeDebounce: number | undefined;
-				const wrapButton = wrapper.querySelector('.wrap-text');
+			codeBlocks.forEach((codeBlock) => {
+				const wrapper = codeBlock.querySelector('.code-wrapper');
+				const pre = codeBlock.querySelector('pre');
 
-				wrapButton?.classList.toggle(
-					'wrap-text--visible',
-					detectOveflow(codeBlockPre),
-				);
-				wrapButton?.addEventListener('click', () => {
-					codeBlockPre.classList.toggle('whitespace-pre-wrap');
-					codeBlockPre.classList.toggle('wrap-anywhere');
-				});
-
-				window.addEventListener('resize', () => {
-					if (resizeDebounce) window.clearTimeout(resizeDebounce);
-					resizeDebounce = window.setTimeout(() => {
-						wrapButton?.classList.toggle(
-							'wrap-text--visible',
-							detectOveflow(codeBlockPre),
-						);
-					}, 200);
-				});
-
-				const copyButton: HTMLButtonElement | null =
-					wrapper.querySelector('.copy-text');
-				if (copyButton) {
-					copyButton.addEventListener('click', async () => {
-						await copyCode(codeBlock, copyButton);
-					});
+				if (wrapper && pre) {
+					setupCodeBlock(wrapper, pre, codeBlock);
 				}
+			});
+		}
+
+		function setupCodeBlock(
+			wrapper: Element,
+			pre: HTMLElement,
+			codeBlock: Element,
+		) {
+			const wrapButton = wrapper.querySelector<HTMLButtonElement>('.wrap-text');
+			const copyButton = wrapper.querySelector<HTMLButtonElement>('.copy-text');
+
+			if (wrapButton) {
+				setupWrapButton(wrapButton, pre);
+			}
+
+			if (copyButton) {
+				setupCopyButton(copyButton, codeBlock);
 			}
 		}
 
-		async function copyCode(block: HTMLElement, button: HTMLButtonElement) {
-			let code = block.querySelector('code');
-			let text = code?.innerText;
+		function setupWrapButton(button: HTMLButtonElement, pre: HTMLElement) {
+			updateWrapButtonVisibility(button, pre);
 
-			if (text) {
-				await navigator.clipboard?.writeText(text);
+			button.addEventListener('click', () => {
+				toggleWrap(pre);
+			});
 
-				const buttonOriginalAriaLabel = button.getAttribute('aria-label');
+			const debouncedUpdate = debounce(() => {
+				updateWrapButtonVisibility(button, pre);
+			}, DEBOUNCE_DELAY);
 
-				// Visual feedback that task is completed
-				button.setAttribute('aria-label', 'Copied');
-				const copiedIconClass = 'copy-text--copied';
-				button.classList.add(copiedIconClass);
-				button.disabled = true;
+			window.addEventListener('resize', debouncedUpdate);
+		}
 
-				setTimeout(() => {
-					if (buttonOriginalAriaLabel)
-						button.setAttribute('aria-label', buttonOriginalAriaLabel);
-					button.classList.remove(copiedIconClass);
-					button.disabled = false;
-				}, 700);
+		function setupCopyButton(button: HTMLButtonElement, codeBlock: Element) {
+			button.addEventListener('click', async () => {
+				await copyCodeToClipboard(codeBlock, button);
+			});
+		}
+
+		function toggleWrap(pre: HTMLElement) {
+			pre.classList.toggle('whitespace-pre-wrap');
+			pre.classList.toggle('wrap-anywhere');
+			pre.dataset.toggled = 'true';
+		}
+
+		function updateWrapButtonVisibility(
+			button: HTMLButtonElement,
+			pre: HTMLElement,
+		) {
+			const hasOverflow = detectOveflow(pre);
+			const isToggled = pre.dataset.toggled === 'true';
+
+			if (hasOverflow || isToggled) {
+				button.classList.add('wrap-text--visible');
+			} else {
+				button.classList.remove('wrap-text--visible');
 			}
 		}
+
+		async function copyCodeToClipboard(
+			block: Element,
+			button: HTMLButtonElement,
+		) {
+			const code = block.querySelector('code');
+			const text = code?.innerText;
+
+			if (!text) return;
+
+			await navigator.clipboard?.writeText(text);
+			showCopyFeedback(button);
+		}
+
+		function showCopyFeedback(button: HTMLButtonElement) {
+			const originalLabel = button.getAttribute('aria-label');
+
+			button.setAttribute('aria-label', 'Copied');
+			button.classList.add('copy-text--copied');
+			button.disabled = true;
+
+			setTimeout(() => {
+				if (originalLabel) {
+					button.setAttribute('aria-label', originalLabel);
+				}
+				button.classList.remove('copy-text--copied');
+				button.disabled = false;
+			}, COPY_FEEDBACK_DURATION);
+		}
+
+		initializeCodeBlocks();
 	</script>
 </Layout>
