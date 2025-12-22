@@ -1,0 +1,468 @@
+---
+title: "Sandboxing Node.js Development Environment"
+date: 2025-12-21
+description: "How to protect your development environment from malicious npm packages using AppArmor and Firejail sandboxing on Linux."
+tags: [security, linux, node.js, sandboxing]
+keywords: [node.js, npm, security, supply chain attacks, apparmor, firejail, bubblewrap, sandboxing, linux, developer security]
+cover: '@assets/img/thumbnails/sanboxing-node-developer-environment.png'
+---
+
+## Background
+
+As you may have heard, there has recently been [a raise in supply chain attacks](https://about.gitlab.com/blog/gitlab-discovers-widespread-npm-supply-chain-attack/) targeting npm packages. However, this is not a new problem - it has existed for quite some time, as npm is a large and attractive target for this kind of attack.
+
+While there are plenty of solutions addressing these risks on the deployment and production side, the developer side often receives far less attention. In most cases, such attacks are discovered quickly, and production environments typically do not use the very latest package versions anyway, which makes the likelihood of an incident in production relatively low.
+
+On the other hand, developers are more likely to install lesser-known packages and often use the latest available versions. This significantly increases the chances of becoming a victim of such an attack.
+
+In my opinion, one of the easiest and most effective ways to achieve this is by using [AppArmor](https://apparmor.net) or [Firejail](https://github.com/netblue30/firejail), provided your operating system is a Linux distribution that supports one of these technologies. I'll mainly focus on these tools specifically, as they are the most accessible for everyday users and are not as complex as alternatives like [SELinux](https://selinuxproject.org).
+
+## AppArmor
+
+### Installation
+
+First things first, ensure that your Linux distro supports AppArmor. It most likely does, but still. You can either check your distro's official documentation, or take a look at [AppArmor's wiki page](https://gitlab.com/apparmor/apparmor/-/wikis/home) for an up-to-date list of supported systems.
+
+Here's the general way of installing AppArmor:
+
+1. Install `apparmor` package.
+
+2. Add the following to your existing kernel parameters:
+
+```conf
+lsm=landlock,lockdown,yama,integrity,apparmor,bpf
+```
+
+3. Reboot to apply the changes.
+
+4. Check if apparmor is running:
+
+```sh show-first-ps1
+aa-status
+apparmor module is loaded.
+```
+
+Again, the exact installation steps may vary depending on the Linux distribution you use - check your distro's wiki or documentation for distribution-specific instructions.
+
+### Configuration
+
+AppArmor needs a configuration per-package, which means that you should configure it depending on your threat model and what packages/binaries you'd like to isolate. I especially wouldn't recommend installing sets of AppArmor profiles like [this one](https://github.com/roddhjav/apparmor.d) for a beginner, unless you can read, modify profiles and understand the logic behind them by yourself.
+
+Below is an example of a basic AppArmor profile for Node.js, assuming Node is installed and managed via Volta.
+
+```conf
+# Variables
+#include <tunables/global>
+
+profile node /home/*/.local/share/volta/bin/* {
+  # Access to basic OS functions
+  #include <abstractions/base>
+  # Communicate with terminals
+  #include <abstractions/consoles>
+  # Work with history in CLI mode
+  @{HOME}/.local/share/node_repl_history rw,
+  @{HOME}/.node_repl_history rw,
+  # Access network
+  network,
+  # Read DNS resolver parameters
+  /run/systemd/resolve/stub-resolv.conf r,
+  # Read procfs
+  /proc/** r,
+  # Read OS configuration
+  /etc/** r,
+  # Execute OS binaries
+  /bin/** ix,
+  /usr/bin/** ix,
+  # Work with npm and yarn
+  /usr/share/yarn/** rix,
+  @{HOME}/.npm/** rwl,
+  @{HOME}/.yarn/** rwl,
+  @{HOME}/.cache/yarn/ rwl,
+  @{HOME}/.cache/yarn/** rwl,
+  @{HOME}/.cache/npm/ rwl,
+  @{HOME}/.cache/npm/** rwl,
+  @{HOME}/.cache/deno/** rwl,
+  @{HOME}/.npmrc rw,
+  @{HOME}/.yarnrc rw,
+  # Work with prettierd
+  @{HOME}/.config/prettier/.prettierrc rw,
+  # Work with wrangler
+  @{HOME}/.config/.wrangler/** rw,
+  /sys/** r,
+  /proc/** r,
+  /run/user/@{uid}/.prettierd/ rw,
+  /run/user/@{uid}/.prettierd/** rw,
+  # Work with astro
+  @{HOME}/.config/astro/config.json rwl,
+  # Work with tmp files
+  /tmp/ rw,
+  /tmp/** rw,
+  # Work with NVS
+  /opt/nvs/ r,
+  /opt/nvs/** rwixlm,
+  # Git integration
+  @{HOME}/.config/git/* r,
+  /usr/share/git-core/templates/* r,
+  /usr/libexec/git-core/* rix,
+  # SSH integration
+  @{HOME}/.ssh/known_hosts rw,
+  # Work with Volta
+  @{HOME}/.local/share/volta/** rwixlkm,
+  # Do anything with projects
+  /srv/node/** rwixlkm,
+  @{HOME}/projects/** rwixlkm,
+  # Work with module configuration stored in user directory
+  @{HOME}/.config/configstore/ rw,
+  @{HOME}/.config/configstore/** rw,
+  # Read WebStorm plugin configuration
+  # Enable Node.js-related plugins in neovim
+  @{HOME}/.local/share/nvim/mason/** rwixlkm,
+  @{HOME}/.local/share/JetBrains/Toolbox/apps/WebStorm/ch-0/*/plugins/** r,
+  # Enable Node.js assist in WebStorm
+  @{HOME}/**/node-typings/ rwixlkm,
+  @{HOME}/**/node-typings/** rwixlkm,
+}
+```
+
+#### Explanation
+
+```conf
+#include <tunables/global>
+```
+
+This imports global variables, allowing you to use macros such as `@{HOME}` and `@{uid}` in the profile.
+
+```conf
+profile node /home/*/.local/share/volta/bin/* {
+```
+
+This line defines which executables the profile applies to. Any process started from a matching binary will be confined by the rules inside this profile.
+
+Most of the remaining lines are self-explanatory: they grant Node.js access to specific files, directories, or system features (for example, networking or temporary files) required for common development workflows.
+
+The characters next to the paths are permission modifiers. These are the most commonly used ones:
+
+- `r` - read: read data
+- `w` - write: create, delete, write to a file and extend it
+- `m` - memory map executable: memory map a file executable
+- `x` - execute: execute file; needs to be preceded by a qualifier
+- `l` - link
+- `k` - lock
+- `ix` - inherit execute
+
+### Usage
+
+#### Enabling the profile
+
+AppArmor profiles are typically stored in `/etc/apparmor.d/. To enable the profile above:
+
+1. Write the profile to `/etc/apparmor.d/node`
+
+2. Enforce it with:
+
+```sh show-root-ps1
+aa-enforce /etc/apparmor.d/node
+```
+
+You can verify that the profile is active with:
+
+```sh show-first-root-ps1
+apparmor_status | grep node
+   node
+```
+
+With this profile, binaries in `volta/bin/*` can only access the specified things in the config. For example, here's what will happen if you try to create a file in user's home directory:
+
+```sh show-first-ps1
+node -e "require('fs').writeFileSync(require('os').homedir()+'/hello.txt','Hello\n',{encoding:'utf8'})"
+node:fs:2426
+    return binding.writeFileUtf8(
+                   ^
+
+Error: EACCES: permission denied, open '/home/user/hello.txt'
+    at Object.writeFileSync (node:fs:2426:20)
+    at [eval]:1:15
+    at runScriptInThisContext (node:internal/vm:209:10)
+    at node:internal/process/execution:449:12
+    at [eval]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:447:60)
+    at evalFunction (node:internal/process/execution:87:30)
+    at evalScript (node:internal/process/execution:99:3)
+    at node:internal/main/eval_string:74:3 {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'open',
+  path: '/home/user/hello.txt'
+}
+
+Node.js v22.16.0
+```
+
+If you need to restart the profile, run this command:
+
+```sh show-first-root-ps1
+apparmor_parser -r /etc/apparmor.d/node
+```
+
+If you don't want to write a profile entirely from scratch, AppArmor provides tools to help with profile generation:
+
+- `aa-genprof` - Run your program through this utility, use it as you normally would, and follow the interactive prompts to generate a profile based on observed behavior.
+- `aa-autodep` - Performs static analysis of a program and generates a base profile automatically.
+
+There's also an excellent article on the [ArchWiki AppArmor page](https://wiki.archlinux.org/title/AppArmor) that you may find helpful if you want to learn more about AppArmor.
+
+
+## Firejail
+
+### Installation and configuration
+
+Compared to AppArmor, Firejail is much simpler to install and configure.
+
+All you need to do is install the `firejail` package on your system. Once installed, you can sandbox any program like this:
+
+```sh show-ps1
+firejail program_name
+```
+
+It's recommended to use a profile for your programs, which provides more fine-grained control:
+
+```sh show-ps1
+firejail --profile=/absolute/path/to/profile program_name
+```
+
+Most pre-installed profiles are typically located in the `/etc/firejail` directory.
+
+If you want to create a profile specifically for your user, simply place it in the `~/.config/firejail` directory.
+
+Here's an example of a typical firejail profile (taken from `imv.profile`):
+
+```conf
+# Firejail profile for imv
+# Description: imv is an image viewer.
+# This file is overwritten after every install/update
+# Persistent local customizations
+include imv.local
+# Persistent global definitions
+include globals.local
+
+include allow-bin-sh.inc
+
+blacklist /usr/libexec
+
+include disable-common.inc
+include disable-devel.inc
+include disable-exec.inc
+include disable-interpreters.inc
+include disable-programs.inc
+include disable-shell.inc
+include disable-write-mnt.inc
+# Users may want to view images in ${HOME}
+#include disable-xdg.inc
+
+# Users may want to view images in ${HOME}
+#include whitelist-common.inc
+include whitelist-run-common.inc
+include whitelist-runuser-common.inc
+# Users may want to view images in /usr/share
+#include whitelist-usr-share-common.inc
+include whitelist-var-common.inc
+
+apparmor
+caps.drop all
+net none
+nodvd
+nogroups
+noinput
+nonewprivs
+noroot
+nosound
+notv
+nou2f
+novideo
+protocol unix
+seccomp
+seccomp.block-secondary
+tracelog
+
+private-bin imv,imv-wayland,imv-x11,sh
+private-cache
+private-dev
+private-tmp
+
+dbus-user none
+dbus-system none
+
+read-only ${HOME}
+restrict-namespaces
+```
+
+#### Explanation
+
+```conf
+include imv.local
+include globals.local
+```
+
+These first two lines allow you to customize the profile without modifying the original file directly.
+
+- To make local changes, create an `imv.local` file in `~/.config/firejail/`.
+- Any settings in this file will be imported in the order they appear in the main profile, so you can override defaults safely.
+
+The `.inc` files you see in the include statements act as sort of a base for your profile.
+
+It's also important to understand that Firejail takes a different approach to security than AppArmor. Many profiles use the `disable-*` files because they are blacklist-based: everything is allowed by default unless it's explicitly disabled. There are exceptions to this though, but keep that in mind when you're working with already existing profiles.
+
+```conf
+apparmor
+caps.drop all
+net none
+nodvd
+nogroups
+noinput
+nonewprivs
+noroot
+nosound
+notv
+nou2f
+novideo
+protocol unix
+seccomp
+seccomp.block-secondary
+tracelog
+```
+
+These are actual firejail flags that control how the sandbox behaves. You can find detailed explanations for each option in the [Firejail profile man page](https://man7.org/linux/man-pages/man5/firejail-profile.5.html).
+
+
+```conf
+private-bin imv,imv-wayland,imv-x11,sh
+private-cache
+private-dev
+private-tmp
+```
+
+These flags are used to isolate `cache`, `dev`, `tmp` and `bin` directories.
+
+- `private-bin imv,imv-wayland,imv-x11,sh` ensures that only the listed binaries are available inside the sandbox, while the rest of the system's binaries are hidden.
+- `private-cache`, `private-dev`, and `private-tmp` create sandboxed versions of the cache, device, and temporary directories, preventing the program from accessing your main system files.
+
+```conf
+dbus-user none
+dbus-system none
+```
+
+These lines disable DBus communication, so the sandboxed program cannot interact with user or system DBus services.
+
+```conf
+read-only ${HOME}
+restrict-namespaces
+```
+
+- `read-only ${HOME}` makes your home directory read-only inside the sandbox, preventing the program from modifying your personal files.
+
+- `restrict-namespaces` installs a seccomp filter that blocks attempts to create new namespaces for cgroup, IPC, network, mount, PID, time, user, or UTS. This adds an extra layer of isolation from the host system.
+
+For a more in-depth explanation of these settings and profile configuration in general, check out the [official Firejail documentation](https://firejail.wordpress.com/documentation-2/).
+
+### Usage
+
+Once you've created or found a Firejail profile, you can sandbox a program by specifying the profile when running the command:
+
+```sh show-ps1
+firejail --profile=/etc/firejail/node.profile node
+```
+
+To make sandboxing more convenient, you can use the `firecfg` command. This will create symbolic links in `/usr/local/bin/` pointing to `/usr/bin/firejail` for programs that have default or custom profiles and modify and copy system `.desktop` files to your user's home directory so that applications launched from menus also run sandboxed.
+
+Personally, I prefer mapping programs individually rather than using `firecfg`. For example:
+
+```sh show-root-ps1
+ln -s /usr/bin/firejail /usr/local/bin/node
+```
+
+For this method to work correctly ensure that `/usr/local/bin` appears before `/usr/bin` in your $PATH. Also, keep in mind that the original binary is not sandboxed if you run it directly from its original location; it must be invoked via the symlink pointing to firejail.
+
+You can also make a small wrapper script and simply add it your `$PATH`:
+
+```sh
+#!/bin/sh
+exec firejail --profile=/absolute/path/to/profile program_name "$@"
+```
+
+This wrapper approach works well for many binaries, but it's not a good solution for Node.js if you're using a version manager. There's an [ongoing discussion](https://github.com/netblue30/firejail/discussions/5050) about this, and as of now, the situation hasn't changed. The nodejs-common.profile itself explains the issue:
+
+```conf
+# Note: gulp, node-gyp, npm, npx, pnpm, pnpx, semver and yarn are all node scripts
+# using the `#!/usr/bin/env node` shebang. By sandboxing node the full
+# node.js stack will be firejailed. The only exception is nvm, which is implemented
+# as a sourced shell function, not an executable binary. Hence it is not
+# directly firejailable. You can work around this by sandboxing the programs
+# used by nvm: curl, sha256sum, tar and wget. We have comments in these
+# profiles on how to enable nvm support via local overrides.
+```
+
+There's likely a solution for Volta using a generic wrapper like this:
+
+```sh
+#!/bin/sh
+
+bin=$(basename "$0")
+exec firejail --profile=/etc/firejail/node.profile "/path/to/volta/bin/$bin" "$@"
+```
+
+With this approach, you can symlink any Volta-managed binary into a directory that appears in your `$PATH`. All of those symlinked commands will then share the same Firejail profile and be sandboxed by default.
+
+Just ensure that the directory containing the symlinks appears before the real Volta bin directory in your `$PATH`. Or, if possible, do not add Volta's bin directory to `$PATH` at all. The main downside of this approach is fairly obvious: if you install packages globally via `npm`, you'll need to manually create symlinks for any new binaries you want sandboxed.
+
+I also recommend checking out the [ArchWiki Firejail page](https://wiki.archlinux.org/title/Firejail), as it contains far more detailed information and examples for advanced configuration and overall information about it.
+
+### AppArmor compatibility
+
+It's recommended to not mix both approaches at the same time for the same program.
+
+That said, if you want to run a program inside Firejail and add an additional layer of security, you can use AppArmor's `firejail-default` profile. To do this, make sure Firejail is started with `--apparmor` flag, or include the `apparmor` command in the Firejail profile config. You should also ensure that the `firejail-default` profile is loaded on the AppArmor side.
+
+When this setup is in place, the application binary will be controlled by the generic `firejail-default` profile rather than a binary-specific AppArmor profile.
+
+Also, you can disable this behavior by adding `ignore apparmor` to the Firejail profile.
+
+## Bubblewrap
+
+It's also worth mentioning [Bubblewrap](https://github.com/containers/bubblewrap) as an alternative. Bubblewrap is kinda similar to Firejail in terms of usage, but it is much smaller and requires more manual setup.
+
+Here's an example Bubblewrap wrapper script for Node.js, [originally posted](https://news.ycombinator.com/item?id=36686461) by HN user [5e92cb50239222b](https://news.ycombinator.com/user?id=5e92cb50239222b):
+
+```sh
+bin=$(basename "$0")
+
+exec bwrap \
+  --bind "$PWD" "$PWD" \
+  --dev /dev \
+  --die-with-parent \
+  --dir /tmp \
+  --dir /var \
+  --disable-userns \
+  --new-session \
+  --proc /proc \
+  --ro-bind /etc/ca-certificates /etc/ca-certificates \
+  --ro-bind /etc/resolv.conf /etc/resolv.conf \
+  --ro-bind /etc/ssl /etc/ssl \
+  --ro-bind /usr /usr \
+  --setenv PATH /usr/bin \
+  --share-net \
+  --symlink /tmp /var/tmp \
+  --symlink /usr/bin /bin \
+  --symlink /usr/lib /lib \
+  --symlink /usr/lib64 /lib64 \
+  --unshare-all \
+  --unshare-user \
+  "/usr/bin/$bin" "$@"
+```
+
+In addition to the [ArchWiki page on Bubblewrap](https://wiki.archlinux.org/title/Bubblewrap), I would also recommend this [article](https://regginator729.wordpress.com/2017/12/12/using-bubblewrap-as-sandbox/) on configuring Bubblewrap. While it's somewhat outdated, it's still worth reading.
+
+## Summary
+
+Most of the solutions discussed can provide strong isolation for a developer's environment - but only if developers are willing to invest the time and effort required to configure and maintain them. Unfortunately, many people tend not to pay much attention to security, especially since these configurations require ongoing maintenance, often done individually, and many developers simply don't fully understand how risky it can be to run untrusted software on their systems, even in a form of npm packages.
+
+That said, given the current surge in ransomware attacks, this is something that deserves far more attention than it typically receives.
