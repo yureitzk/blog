@@ -192,7 +192,15 @@ html.dark .moon {
 	content: '$ ';
 }
 
+[data-show-first-ps1='true'] .code-wrapper code > span:first-child::before {
+	content: '$ ';
+}
+
 [data-show-root-ps1='true'] .code-wrapper code > span[data-line]::before {
+	content: '# ';
+}
+
+[data-show-first-root-ps1='true'] .code-wrapper code > span:first-child::before {
 	content: '# ';
 }
 
