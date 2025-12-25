@@ -28,7 +28,7 @@ const { url, description, iconName, clipboard } = Astro.props;
 		<Icon class='absolute h-full w-full link-icon' name={iconName} />
 
 		{clipboard && (
-			<Icon class='absolute h-full w-full checkmark-icon hidden' name={'mingcute:check-fill'} />
+			<Icon class='absolute h-full w-full copy-indicator-icon hidden' name={'copied'} />
 		)}
 	</div>
 </a>
@@ -48,7 +48,7 @@ async function copyText(link: HTMLAnchorElement,) {
 	const text = link?.dataset?.text;
 	let label: HTMLElement | null = link?.querySelector('span.sr-only');
 	let linkIcon: HTMLElement | null = link?.querySelector('.link-icon');
-	let checkmarkIcon: HTMLElement | null = link?.querySelector('.checkmark-icon');
+	let indicatorIcon: HTMLElement | null = link?.querySelector('.copy-indicator-icon');
 
 	if (text && label) {
 		await navigator.clipboard?.writeText(text)
@@ -57,13 +57,13 @@ async function copyText(link: HTMLAnchorElement,) {
 		const hiddenClass = 'hidden';
 
 		linkIcon?.classList.add(hiddenClass);
-		checkmarkIcon?.classList.remove(hiddenClass);
+		indicatorIcon?.classList.remove(hiddenClass);
 		label.innerText = 'Copied';
 
 		setTimeout(() => {
 			label.innerText = oldLabelText;
 			linkIcon?.classList.remove(hiddenClass);
-			checkmarkIcon?.classList.add(hiddenClass);
+			indicatorIcon?.classList.add(hiddenClass);
 		}, 700);
 	};
 }
