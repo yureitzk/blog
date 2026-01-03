@@ -4,6 +4,7 @@ import {
 	DISCORD_USERNAME,
 	STATUS,
 	NOTES,
+	TWITTER_URL,
 	BLUESKY_URL,
 	TELEGRAM_URL,
 	MATRIX_URL,
@@ -46,6 +47,7 @@ const { class: className } = Astro.props;
 	<p class='opacity-80 mb-2 p-note text-center'>{NOTES}</p>
 	<Socials
 		class='flex gap-1 flex-wrap justify-center'
+		twitter={TWITTER_URL}
 		bluesky={BLUESKY_URL}
 		youtube={YOUTUBE_URL}
 		reddit={REDDIT_URL}
