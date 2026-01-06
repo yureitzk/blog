@@ -9,6 +9,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeCodeBlockMeta from './src/lib/plugins/rehypeCodeBlockMeta.ts';
 import rehypeCodeButtons from './src/lib/plugins/rehypeCodeButtons.ts';
 import rehypeTocExclude from './src/lib/plugins/rehypeTocExclude.ts';
+import { createURL } from './src/lib/url.ts';
 import { PAGE_URL } from './src/config.ts';
 
 import rehypeSlug from 'rehype-slug';
@@ -76,7 +77,13 @@ export default defineConfig({
 			],
 		}),
 		icon(),
-		sitemap(),
+		sitemap({
+			serialize(item) {
+				const url = new URL(item.url);
+				item.url = createURL(url.origin, url.pathname);
+				return item;
+			},
+		}),
 		pagefind(),
 		AstroPWA({
 			base: '/',

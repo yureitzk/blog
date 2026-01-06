@@ -1,7 +1,8 @@
 ---
 import { Schema } from 'astro-seo-schema';
 import { getImage } from 'astro:assets';
-import { createURL, formatDate, createBreadcrumbList } from '@lib/utils';
+import { formatDate, createBreadcrumbList } from '@lib/utils';
+import { createURL } from '@lib/url';
 import type { Post } from '@src/types/Post';
 import type {
 	Thing,

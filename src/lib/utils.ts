@@ -4,6 +4,7 @@ import type { CollectionKey } from 'astro:content';
 import type { BreadcrumbList, ListItem } from 'schema-dts';
 import { getCollection } from 'astro:content';
 import { slug as slugify } from 'github-slugger';
+import { createURL } from '@lib/url';
 
 export async function getAllPosts(): Promise<Post[]> {
 	const allPosts = await customGetCollection('blog');
@@ -28,11 +29,6 @@ export async function getPostsByTag(value: string) {
 	const posts = await getCollectionFilter('blog', 'tags', value);
 
 	return posts;
-}
-
-export function createURL(base: string, path: string): string {
-	const url = new URL(path, base);
-	return url.href;
 }
 
 export function createBreadcrumbList(
