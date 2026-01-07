@@ -3,6 +3,7 @@ import { TITLE } from './src/config';
 export const manifestObj = {
 	name: TITLE,
 	short_name: TITLE,
+	share_target: undefined,
 	theme_color: '#ffffff',
 	icons: [
 		{
